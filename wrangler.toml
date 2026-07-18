@@ -1,0 +1,11 @@
+name = "snaptrack-project"
+compatibility_date = "2026-07-18"
+pages_build_output_dir = "."
+
+[vars]
+AUTH_SECRET = "dev-secret"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "snaptrack-db"
+database_id = "37311ed2-75b5-438b-9a06-0790cf77eaf1"

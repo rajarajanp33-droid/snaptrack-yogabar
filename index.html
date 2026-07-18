@@ -1,0 +1,2042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SnapTrack">
+<meta name="theme-color" content="#3FAEA1">
+<title>SnapTrack — Yogabar Logistics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<style>
+:root{
+  /* Yogabar brand teal (sampled from the official symbol) as primary identity color */
+  --teal:#3FAEA1; --teal-dark:#256F66; --teal-light:#DFF3F0;
+  /* Coral = the "action" color — vivid, energetic, used for every tap-target / CTA */
+  --orange:#F0603E; --orange-dark:#CC4A2C; --orange-light:#FDE3DA;
+  /* Charcoal carries a whisper of teal so dark surfaces still read as "on brand" */
+  --charcoal:#20302C;
+  --paper:#FBF7EE; --card:#FFFFFF; --muted:#83786F; --line:#E7E1D3;
+  --amber:#F0AA3D; --amber-light:#FCEDC9;
+  --green:#3C9E74; --green-light:#DFF3E9;
+  --red:#D6455B; --red-light:#FBE3E8;
+  --blue:#3B6FA0; --blue-light:#E3ECF4;
+  --radius:12px;
+  --shadow:0 1px 2px rgba(32,48,44,0.05), 0 4px 16px rgba(32,48,44,0.07);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html{-webkit-text-size-adjust:100%;}
+html,body{margin:0;padding:0;overflow-x:hidden;width:100%;}
+body{background:var(--paper);color:var(--charcoal);font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh;min-height:100dvh;}
+h1,h2,h3,.display{font-family:'Space Grotesk',sans-serif;}
+.mono{font-family:'IBM Plex Mono',monospace;}
+button{font-family:inherit;cursor:pointer;touch-action:manipulation;}
+button, .btn, .tab, .veh-pick, .move-pick, .queue-btn{min-height:38px;}
+input, select, textarea{font-size:16px;}
+.field input, .field select, .toolbar input, .toolbar select{font-size:14.5px;}
+a{color:inherit;}
+::selection{background:var(--orange-light);}
+#app{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;width:100%;overflow-x:hidden;}
+
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;padding-top:calc(12px + env(safe-area-inset-top));background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:40;flex-wrap:wrap;gap:10px;box-shadow:0 1px 0 var(--teal-light);}
+.brand{display:flex;align-items:center;gap:10px;}
+.brand .mark{width:38px;height:38px;border-radius:50%;flex:none;box-shadow:0 0 0 3px var(--teal-light), var(--shadow);overflow:hidden;}
+.brand .mark img{width:100%;height:100%;display:block;object-fit:cover;}
+.brand .word{font-family:'Space Grotesk';font-weight:700;font-size:18px;letter-spacing:-0.01em;color:var(--teal-dark);}
+.brand .sub{font-size:11px;color:var(--muted);margin-top:-2px;letter-spacing:.04em;text-transform:uppercase;}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;}
+.tab{padding:8px 14px;border-radius:8px;font-size:13.5px;font-weight:600;color:var(--muted);background:transparent;border:none;transition:.15s;}
+.tab:hover{background:var(--teal-light);color:var(--teal-dark);}
+.tab.active{background:var(--teal-dark);color:white;}
+.userchip{display:flex;align-items:center;gap:10px;font-size:13px;flex-wrap:wrap;justify-content:flex-end;}
+.userchip .name{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+@media(max-width:480px){ .userchip .name{max-width:80px;} }
+.userchip .name{font-weight:600;}
+.userchip .role{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--teal-dark);background:var(--teal-light);padding:2px 8px;border-radius:20px;font-weight:700;}
+.userchip .locpin{font-size:10.5px;color:var(--blue);background:var(--blue-light);padding:2px 8px;border-radius:20px;font-weight:700;}
+.logout-btn{background:none;border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12.5px;font-weight:600;color:var(--muted);}
+.logout-btn:hover{border-color:var(--red);color:var(--red);}
+
+.main{flex:1;padding:24px;max-width:1240px;margin:0 auto;width:100%;}
+@media(max-width:720px){.main{padding:14px;}.topbar{padding:12px 14px;}}
+
+.grid{display:grid;gap:16px;}
+.grid-4{grid-template-columns:repeat(4,1fr);}
+.grid-3{grid-template-columns:repeat(3,1fr);}
+.grid-2{grid-template-columns:repeat(2,1fr);}
+@media(max-width:900px){.grid-4{grid-template-columns:repeat(2,1fr);}.grid-3{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:560px){.grid-4,.grid-3,.grid-2{grid-template-columns:1fr;}}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);}
+.stat-card{position:relative;overflow:hidden;}
+.stat-card .label{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
+.stat-card .value{font-family:'Space Grotesk';font-size:30px;font-weight:700;margin-top:6px;letter-spacing:-0.02em;}
+.stat-card .unit{font-size:14px;color:var(--muted);font-weight:600;margin-left:3px;}
+.stat-card .bar{position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--teal);}
+.stat-card.alt .bar{background:var(--orange);}
+.section-title{font-family:'Space Grotesk';font-size:18px;font-weight:700;margin:28px 0 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.section-title .tag{font-size:11px;background:var(--teal-light);color:var(--teal-dark);padding:2px 9px;border-radius:20px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+.section-title .count{font-size:11px;background:var(--line);color:var(--muted);padding:2px 9px;border-radius:20px;font-weight:700;}
+
+.btn{border-radius:10px;border:none;padding:11px 18px;font-weight:700;font-size:14px;display:inline-flex;align-items:center;gap:8px;transition:.15s;}
+.btn-primary{background:var(--orange);color:white;}
+.btn-primary:hover{background:var(--orange-dark);}
+.btn-outline{background:transparent;border:1.5px solid var(--line);color:var(--charcoal);}
+.btn-outline:hover{border-color:var(--orange);color:var(--orange-dark);}
+.btn-dark{background:var(--charcoal);color:white;}
+.btn-ghost{background:transparent;color:var(--muted);}
+.btn-ghost:hover{color:var(--charcoal);}
+.btn-sm{padding:7px 12px;font-size:12.5px;border-radius:8px;}
+.btn:disabled{opacity:.45;cursor:not-allowed;}
+.btn-block{width:100%;justify-content:center;}
+.btn-huge{width:100%;padding:22px 20px;font-size:19px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:12px;box-shadow:0 6px 20px rgba(234,91,47,0.28);}
+.btn-huge:active{transform:scale(.985);}
+
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
+  background:linear-gradient(160deg, #2E9187 0%, #3FAEA1 38%, #E8825A 100%);}
+.login-shell{width:100%;max-width:840px;background:var(--card);border-radius:22px;overflow:hidden;
+  box-shadow:0 24px 60px rgba(20,40,36,0.35);display:grid;grid-template-columns:1fr 1fr;min-height:520px;}
+@media(max-width:720px){.login-shell{grid-template-columns:1fr;min-height:0;}}
+.login-hero{background:radial-gradient(circle at 30% 20%, rgba(255,255,255,0.16), transparent 55%), linear-gradient(200deg, #256F66 0%, #3FAEA1 55%, #F0603E 130%);
+  color:white;padding:38px 32px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden;}
+.login-hero .hero-mark{width:76px;height:76px;border-radius:50%;box-shadow:0 0 0 4px rgba(255,255,255,0.35), 0 10px 26px rgba(0,0,0,0.25);overflow:hidden;}
+.login-hero .hero-mark img{width:100%;height:100%;object-fit:cover;display:block;}
+.login-hero h1{font-size:26px;margin:18px 0 6px;letter-spacing:-0.01em;line-height:1.15;}
+.login-hero p{font-size:13.5px;color:rgba(255,255,255,0.88);margin:0;max-width:280px;line-height:1.5;}
+.route-strip{display:flex;align-items:center;gap:6px;margin-top:26px;}
+.route-strip .stop{width:9px;height:9px;border-radius:50%;background:#FFE1A8;box-shadow:0 0 0 3px rgba(255,255,255,0.25);flex:none;}
+.route-strip .dash{flex:1;height:2px;background:repeating-linear-gradient(90deg, rgba(255,255,255,0.55) 0 6px, transparent 6px 12px);}
+.route-labels{display:flex;justify-content:space-between;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:rgba(255,255,255,0.75);margin-top:6px;}
+.login-side{padding:38px 34px;display:flex;flex-direction:column;justify-content:center;}
+.login-side .kicker{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--teal-dark);margin-bottom:4px;}
+.login-side h2{font-size:20px;margin:0 0 18px;letter-spacing:-0.01em;}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:12.5px;font-weight:700;color:var(--charcoal);margin-bottom:6px;text-transform:uppercase;letter-spacing:.03em;}
+.field input,.field select{width:100%;padding:11px 13px;border-radius:9px;border:1.5px solid var(--line);font-size:14.5px;background:var(--paper);font-family:inherit;}
+.field input:focus,.field select:focus{outline:none;border-color:var(--teal);background:white;}
+.err-msg{background:var(--red-light);color:var(--red);border-radius:8px;padding:9px 12px;font-size:13px;font-weight:600;margin-bottom:14px;}
+
+/* ---- bilingual display: bold/bigger selected language, small English underneath ---- */
+.i18n{display:inline-flex;flex-direction:column;line-height:1.22;gap:1px;text-align:inherit;}
+.i18n-main{font-weight:800;}
+.i18n-en{font-size:0.64em;font-weight:600;opacity:.65;letter-spacing:0;text-transform:none;}
+.lang-switch{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;}
+.lang-btn{padding:8px 14px;border-radius:9px;border:1.5px solid var(--line);background:var(--paper);font-size:13px;font-weight:700;color:var(--muted);}
+.lang-btn.sel{border-color:var(--teal);background:var(--teal-light);color:var(--teal-dark);}
+.lang-switch-top select{padding:6px 10px;border-radius:8px;border:1.5px solid var(--line);font-size:12.5px;font-weight:600;background:white;color:var(--charcoal);}
+
+.veh-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;}
+.veh-pick{padding:16px 10px;border-radius:12px;border:2px solid var(--line);background:var(--card);text-align:center;font-family:'IBM Plex Mono';font-weight:600;font-size:14px;}
+.veh-pick.sel{border-color:var(--orange);background:var(--orange-light);color:var(--orange-dark);}
+.step-select{display:grid;grid-template-columns:1fr;gap:14px;max-width:520px;margin:0 auto;}
+
+.ticket{max-width:560px;margin:0 auto;background:var(--card);border-radius:16px;border:1px solid var(--line);box-shadow:var(--shadow);overflow:hidden;}
+.ticket-head{background:var(--charcoal);color:white;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;}
+.ticket-head .veh{font-family:'IBM Plex Mono';font-weight:600;font-size:15px;}
+.ticket-head .mv{font-size:12.5px;color:#D9D3CC;}
+.ticket-body{padding:20px;}
+.stepper{list-style:none;margin:0 0 20px;padding:0;}
+.stepper li{display:flex;align-items:center;gap:12px;padding:8px 0;position:relative;}
+.stepper li:not(:last-child)::after{content:'';position:absolute;left:11px;top:30px;bottom:-4px;width:2px;background:var(--line);}
+.dot{width:24px;height:24px;border-radius:50%;background:var(--paper);border:2px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--muted);z-index:1;}
+.dot.done{background:var(--green);border-color:var(--green);color:white;}
+.dot.now{background:var(--orange);border-color:var(--orange);color:white;box-shadow:0 0 0 4px var(--orange-light);}
+.step-label{font-size:13.5px;font-weight:600;flex:1;}
+.step-time{font-family:'IBM Plex Mono';font-size:12px;color:var(--muted);}
+.qr-alt{display:flex;justify-content:center;margin-top:12px;}
+.qr-alt button{font-size:12.5px;color:var(--muted);background:none;border:none;text-decoration:underline;text-underline-offset:3px;}
+.done-banner{text-align:center;padding:30px 20px;}
+.done-banner .big{font-size:44px;}
+.done-banner h3{margin:6px 0 4px;}
+.done-banner p{color:var(--muted);font-size:13.5px;margin:0 0 18px;}
+.perf{height:14px;background:radial-gradient(circle 7px at 0 7px, transparent 7px, var(--paper) 7.5px),radial-gradient(circle 7px at 100% 7px, transparent 7px, var(--paper) 7.5px);background-size:50% 100%;background-repeat:no-repeat;background-position:left,right;border-top:1.5px dashed var(--line);}
+
+/* Trip Desk */
+.desk-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:6px;}
+.desk-loc{font-family:'Space Grotesk';font-size:22px;font-weight:700;display:flex;align-items:center;gap:10px;}
+.desk-loc .pin{width:10px;height:10px;border-radius:50%;background:var(--orange);}
+.loc-switch select{padding:8px 12px;border-radius:8px;border:1.5px solid var(--line);font-weight:600;font-size:13px;background:white;}
+.queue-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow);}
+.queue-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px;}
+.queue-veh{font-family:'IBM Plex Mono';font-weight:700;font-size:15px;}
+.queue-meta{font-size:12px;color:var(--muted);}
+.queue-btn{width:100%;padding:13px;border-radius:10px;background:var(--orange);color:white;font-weight:700;font-size:14.5px;border:none;}
+.queue-btn:hover{background:var(--orange-dark);}
+.new-arrival-card{border:1.5px dashed var(--amber);background:var(--amber-light);}
+.new-arrival-card .field label{color:#8A5C0B;}
+
+.table-wrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);}
+table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:640px;}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);padding:12px 14px;border-bottom:1.5px solid var(--line);white-space:nowrap;background:var(--paper);}
+td{padding:11px 14px;border-bottom:1px solid var(--line);white-space:nowrap;}
+tr:last-child td{border-bottom:none;}
+td.mono,th.mono{font-family:'IBM Plex Mono';}
+.badge{padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;}
+.badge.red{background:var(--red-light);color:var(--red);}
+.badge.green{background:var(--green-light);color:var(--green);}
+.badge.amber{background:var(--amber-light);color:#8A5C0B;}
+.badge.gray{background:var(--line);color:var(--muted);}
+.badge.blue{background:var(--blue-light);color:var(--blue);}
+.flag-row{background:var(--red-light);}
+
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.pill-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.pill-row input[type="date"]{min-width:0;flex:1 1 130px;max-width:170px;}
+.empty{padding:50px 20px;text-align:center;color:var(--muted);}
+.empty .big{font-size:34px;margin-bottom:8px;}
+.pie-wrap{display:flex;gap:26px;align-items:center;flex-wrap:wrap;}
+.pie{width:180px;height:180px;border-radius:50%;flex:none;}
+.legend{display:flex;flex-direction:column;gap:9px;}
+.legend .row{display:flex;align-items:center;gap:9px;font-size:13.5px;}
+.legend .sw{width:12px;height:12px;border-radius:3px;}
+.legend .row b{font-family:'IBM Plex Mono';margin-left:auto;padding-left:16px;}
+.two-col{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;}
+@media(max-width:900px){.two-col{grid-template-columns:1fr;}}
+.form-row{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+@media(max-width:560px){.form-row{grid-template-columns:1fr;}}
+.list-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);gap:10px;flex-wrap:wrap;}
+.list-row:last-child{border-bottom:none;}
+.modal-bg{position:fixed;inset:0;background:rgba(36,34,32,0.55);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px;}
+.modal{background:white;border-radius:16px;padding:22px;max-width:420px;width:100%;max-height:85vh;overflow:auto;}
+.close-x{float:right;background:none;border:none;font-size:18px;color:var(--muted);}
+.qr-box{display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px 0;}
+video#scanvid{width:100%;border-radius:12px;background:#000;}
+.bottom-nav{display:none;}
+@media(max-width:720px){
+  .bottom-nav{display:flex;position:sticky;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom));z-index:40;gap:4px;}
+  .bottom-nav .tab{flex:1;text-align:center;font-size:11px;padding:8px 2px;min-height:34px;}
+  .topbar .tabs{display:none;}
+  .main{padding-bottom:20px;}
+  th, td{padding:9px 10px;font-size:12.5px;}
+  .login-hero{padding:28px 24px;}
+  .login-side{padding:28px 24px;}
+  .desk-loc{font-size:19px;}
+  .stat-card .value{font-size:25px;}
+  .btn-huge{padding:19px 16px;font-size:17px;}
+}
+@media(max-width:380px){
+  .grid-4,.grid-3,.grid-2{grid-template-columns:1fr;}
+  .veh-grid{grid-template-columns:repeat(auto-fill,minmax(105px,1fr));}
+}
+.footnote{font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.5;}
+.kpi-flag{color:var(--red);font-weight:700;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* ============================================================
+   YOGABAR LOGISTICS TRACKER — single-file app
+   Data persistence: window.storage (shared = visible to all users)
+   Auth: lightweight in-app username/password, admin-provisioned.
+   NOT enterprise-grade security — good for keeping casual/accidental
+   access out of a warehouse tablet, not for anything sensitive.
+   ============================================================ */
+
+const STEP_KEYS = ['reachedSource','loadingStart','loadingEnd','departed','reachedDestination','unloadingStart','unloadingEnd'];
+const STEP_LABEL = {
+  reachedSource:'Reached Source', loadingStart:'Loading Started', loadingEnd:'Loading Completed',
+  departed:'Departed', reachedDestination:'Reached Destination', unloadingStart:'Unloading Started',
+  unloadingEnd:'Unloading Completed'
+};
+const SOURCE_STEPS = ['reachedSource','loadingStart','loadingEnd','departed'];
+const DEST_STEPS = ['reachedDestination','unloadingStart','unloadingEnd'];
+const STEP_LABEL_KEY = {
+  reachedSource:'stepReachedSource', loadingStart:'stepLoadingStart', loadingEnd:'stepLoadingEnd',
+  departed:'stepDeparted', reachedDestination:'stepReachedDestination',
+  unloadingStart:'stepUnloadingStart', unloadingEnd:'stepUnloadingEnd'
+};
+function gateToken(locId){ return 'YOGABAR-LOC-'+locId; }
+
+const YB_LOGO = 'data:image/png;base64,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';
+function stepLocationFor(trip,key){ return SOURCE_STEPS.includes(key) ? trip.sourceId : trip.destId; }
+
+/* ==================== i18n ==================== */
+const LANGS = { en:'English', hi:'हिन्दी', kn:'ಕನ್ನಡ', ta:'தமிழ்' };
+const I18N = {
+en:{
+ tagline:"By Yogabar — track loading, transit & unloading time between every factory and warehouse gate.",
+ loginKicker:"Team login", loginHeading:"Log in to your account",
+ usernameLabel:"Username", usernamePlaceholder:"your username",
+ passwordLabel:"Password", passwordPlaceholder:"your password",
+ loginButton:"Log in", loginFootnote:"Don't have an account? Ask your Admin to create one for you in Admin → User Accounts.",
+ setupKicker:"First-time setup", setupHeading:"Create the first Admin account",
+ setupHeroTitle:"Welcome to SnapTrack", setupHeroTagline:"By Yogabar — turnaround, loading & unloading efficiency across every factory and warehouse gate.",
+ nameLabel:"Your name", namePlaceholder:"e.g. Priya Rao",
+ setupUsernamePlaceholder:"e.g. priya.admin", setupPasswordPlaceholder:"Min. 4 characters",
+ setupButton:"Create Admin Account",
+ setupFootnote:"Passwords are hashed before saving, but this is a lightweight in-app login built for a small trusted team — not bank-grade security. Don't reuse a sensitive password here. This account can create everyone else afterward.",
+ routeSource:"Source", routeTransit:"On the road", routeDestination:"Destination",
+ logout:"Log out",
+ roleAdmin:"Admin", roleManager:"Manager", roleOperator:"Operator", roleDriver:"Driver",
+ navDeck:"Trip Desk", navDashboard:"Dashboard", navVehicles:"Vehicles", navAnalytics:"Analytics",
+ navAlerts:"Alerts", navReports:"Reports", navAdmin:"Admin", navTrip:"My Trip",
+ stepReachedSource:"Reached Source", stepLoadingStart:"Loading Started", stepLoadingEnd:"Loading Completed",
+ stepDeparted:"Departed", stepReachedDestination:"Reached Destination",
+ stepUnloadingStart:"Unloading Started", stepUnloadingEnd:"Unloading Completed",
+ step1:"Step 1", selectVehicle:"Select Vehicle", step2:"Step 2", fromLocation:"From Location",
+ step3:"Step 3", toLocation:"To Location", startTrip:"Start Trip", onTrip:"ON TRIP",
+ pickFromFirst:"Pick a \"From\" location first.",
+ tripClosed:"Trip closed", turnaroundTime:"Turnaround time", loadingWord:"Loading",
+ travelWord:"Travel", unloadingWord:"Unloading", startNextTrip:"Start Next Trip",
+ inProgress:"In progress", completedWord:"Completed",
+ tapInstruction:"Tap the button the moment this happens — timestamp is saved automatically.",
+ scanInstead:"or scan {loc} gate QR instead",
+ deskLogNewArrival:"Log a New Arrival", deskAtThisGate:"at this gate", deskVehicleLabel:"Vehicle",
+ deskSelectVehicle:"Select vehicle…", deskGoingTo:"Going to", deskSelectDestination:"Select destination…",
+ deskDriverName:"Driver name (optional — for record only)", deskDriverPlaceholder:"e.g. Ramesh Kumar",
+ deskLogArrival:"Log Arrival — Reached Source", deskAllBusy:"Every active vehicle is already on a trip.",
+ deskDepartingFromHere:"Departing From Here", deskNothingDeparting:"Nothing waiting to depart from here right now.",
+ deskArrivingHere:"Arriving Here", deskNothingArriving:"Nothing inbound to this location right now.",
+ deskCompletedToday:"Completed Today Here", thVehicle:"Vehicle", thRoute:"Route", thDriver:"Driver",
+ thClosed:"Closed", stepOf:"step {n} of 7",
+ dashToday:"Today", statTotalTrips:"Total Trips", statAvgLoading:"Avg Loading Time",
+ statAvgTravel:"Avg Travel Time", statAvgUnloading:"Avg Unloading Time", statUtilization:"Vehicle Utilization",
+ statLongestDelay:"Longest Delay", statFastestTrip:"Fastest Trip", liveFleetStatus:"Live Fleet Status",
+ thStage:"Stage", thSince:"Since", idleWord:"Idle", awaitingWord:"Awaiting", wrappingUp:"Wrapping up",
+ vehReportTitle:"Vehicle Report", thTripsToday:"Trips Today", thAvgLoading:"Avg Loading",
+ thAvgTravel:"Avg Travel", thAvgUnloading:"Avg Unloading", thIdleTime:"Idle Time",
+ thTotalRunning:"Total Running", thEfficiency:"Efficiency",
+ effFootnote:"Efficiency Score = total running time (loading + travel + unloading) ÷ configured workday hours (Admin → Settings).",
+ analyticsTitle:"Analytics", statTripsCompleted:"Trips Completed", statTimeWaiting:"Time Spent Waiting",
+ avgByLocation:"Average Time by Location", thLocation:"Location", thAvgLoadSrc:"Avg Loading (as source)",
+ thAvgUnlDest:"Avg Unloading (as destination)", timeBreakdown:"Time Breakdown", waitingWord:"Waiting",
+ alertsTitle:"Alerts", alertsNone:"All clear — no delays flagged today.", thFlags:"Flags", thStatus:"Status",
+ reportsTitle:"Reports", tripsTodayLabel:"trip(s) today", exportCsv:"Export CSV", exportExcel:"Export Excel",
+ exportPdf:"Export PDF", noTripsYet:"No trips yet today",
+ adminTitle:"Admin", adminSettings:"Settings", adminUsers:"User Accounts", adminVehicles:"Vehicle Master",
+ adminLocations:"Location Master", adminGates:"Gate QR Codes",
+ rangeYesterday:"Yesterday", range7d:"Last 7 Days", range30d:"Last 30 Days", rangeMonth:"This Month", rangeCustom:"Custom",
+ allVehicles:"All Vehicles",
+ delayModalTitle:"Why was this delayed?", delayReasonLabel:"Delay Reason", delayReasonPlaceholder:"Select a reason…",
+ delayRemarksLabel:"Remarks (optional)", delayRemarksPlaceholder:"Add any extra detail…", delaySaveButton:"Save & Continue",
+ delayRequiredNote:"This step took longer than expected. Please record why before continuing.",
+ tripsPerDay:"Trips Per Day", delayReasonsBreakdown:"Delay Reasons", noDelaysInRange:"No delays recorded in this period.",
+ topRoutes:"Top Routes", thTrips:"Trips", thAvgTurnaround:"Avg Turnaround", thReason:"Reason", thRemarks:"Remarks", thDate:"Date",
+ adminDelayReasons:"Delay Reasons", noTripsInRange:"No trips in this period",
+},
+hi:{
+ tagline:"योगाबार द्वारा — हर फ़ैक्ट्री और वेयरहाउस गेट के बीच लोडिंग, परिवहन और अनलोडिंग समय ट्रैक करें।",
+ loginKicker:"टीम लॉगिन", loginHeading:"अपने खाते में लॉग इन करें",
+ usernameLabel:"यूज़रनेम", usernamePlaceholder:"अपना यूज़रनेम",
+ passwordLabel:"पासवर्ड", passwordPlaceholder:"अपना पासवर्ड",
+ loginButton:"लॉग इन करें", loginFootnote:"खाता नहीं है? Admin → User Accounts में खाता बनाने के लिए अपने एडमिन से कहें।",
+ setupKicker:"पहली बार सेटअप", setupHeading:"पहला एडमिन खाता बनाएं",
+ setupHeroTitle:"SnapTrack में आपका स्वागत है", setupHeroTagline:"योगाबार द्वारा — हर फ़ैक्ट्री और वेयरहाउस गेट पर टर्नअराउंड, लोडिंग और अनलोडिंग दक्षता।",
+ nameLabel:"आपका नाम", namePlaceholder:"जैसे प्रिया राव",
+ setupUsernamePlaceholder:"जैसे priya.admin", setupPasswordPlaceholder:"कम से कम 4 अक्षर",
+ setupButton:"एडमिन खाता बनाएं",
+ setupFootnote:"पासवर्ड सेव होने से पहले हैश किए जाते हैं, लेकिन यह छोटी भरोसेमंद टीम के लिए हल्का इन-ऐप लॉगिन है — बैंक जैसी सुरक्षा नहीं। यहाँ कोई संवेदनशील पासवर्ड दोबारा इस्तेमाल न करें। यह खाता बाद में बाकी सभी खाते बना सकता है।",
+ routeSource:"स्रोत", routeTransit:"रास्ते में", routeDestination:"गंतव्य",
+ logout:"लॉग आउट",
+ roleAdmin:"एडमिन", roleManager:"मैनेजर", roleOperator:"ऑपरेटर", roleDriver:"ड्राइवर",
+ navDeck:"ट्रिप डेस्क", navDashboard:"डैशबोर्ड", navVehicles:"वाहन", navAnalytics:"विश्लेषण",
+ navAlerts:"अलर्ट", navReports:"रिपोर्ट", navAdmin:"एडमिन", navTrip:"मेरी ट्रिप",
+ stepReachedSource:"स्रोत पर पहुंचे", stepLoadingStart:"लोडिंग शुरू", stepLoadingEnd:"लोडिंग पूरी",
+ stepDeparted:"रवाना हुए", stepReachedDestination:"गंतव्य पर पहुंचे",
+ stepUnloadingStart:"अनलोडिंग शुरू", stepUnloadingEnd:"अनलोडिंग पूरी",
+ step1:"चरण 1", selectVehicle:"वाहन चुनें", step2:"चरण 2", fromLocation:"कहाँ से",
+ step3:"चरण 3", toLocation:"कहाँ तक", startTrip:"ट्रिप शुरू करें", onTrip:"ट्रिप पर",
+ pickFromFirst:"पहले \"कहाँ से\" स्थान चुनें।",
+ tripClosed:"ट्रिप बंद हुई", turnaroundTime:"टर्नअराउंड समय", loadingWord:"लोडिंग",
+ travelWord:"यात्रा", unloadingWord:"अनलोडिंग", startNextTrip:"अगली ट्रिप शुरू करें",
+ inProgress:"जारी है", completedWord:"पूर्ण",
+ tapInstruction:"जैसे ही यह हो, तुरंत बटन दबाएं — समय अपने आप सेव हो जाएगा।",
+ scanInstead:"या इसके बजाय {loc} गेट का QR स्कैन करें",
+ deskLogNewArrival:"नया वाहन दर्ज करें", deskAtThisGate:"इस गेट पर", deskVehicleLabel:"वाहन",
+ deskSelectVehicle:"वाहन चुनें…", deskGoingTo:"कहाँ जा रहा है", deskSelectDestination:"गंतव्य चुनें…",
+ deskDriverName:"ड्राइवर का नाम (वैकल्पिक — केवल रिकॉर्ड के लिए)", deskDriverPlaceholder:"जैसे रमेश कुमार",
+ deskLogArrival:"आगमन दर्ज करें — स्रोत पर पहुंचे", deskAllBusy:"सभी सक्रिय वाहन पहले से ट्रिप पर हैं।",
+ deskDepartingFromHere:"यहाँ से रवाना होने वाले", deskNothingDeparting:"अभी यहाँ से रवाना होने के लिए कोई वाहन नहीं है।",
+ deskArrivingHere:"यहाँ आने वाले", deskNothingArriving:"अभी इस स्थान पर आने वाला कोई वाहन नहीं है।",
+ deskCompletedToday:"आज यहाँ पूर्ण हुई", thVehicle:"वाहन", thRoute:"मार्ग", thDriver:"ड्राइवर",
+ thClosed:"बंद हुई", stepOf:"चरण {n} / 7",
+ dashToday:"आज", statTotalTrips:"कुल ट्रिप", statAvgLoading:"औसत लोडिंग समय",
+ statAvgTravel:"औसत यात्रा समय", statAvgUnloading:"औसत अनलोडिंग समय", statUtilization:"वाहन उपयोग",
+ statLongestDelay:"सबसे लंबी देरी", statFastestTrip:"सबसे तेज़ ट्रिप", liveFleetStatus:"लाइव फ्लीट स्थिति",
+ thStage:"चरण", thSince:"कब से", idleWord:"खाली", awaitingWord:"प्रतीक्षा में", wrappingUp:"समाप्त हो रही है",
+ vehReportTitle:"वाहन रिपोर्ट", thTripsToday:"आज की ट्रिप", thAvgLoading:"औसत लोडिंग",
+ thAvgTravel:"औसत यात्रा", thAvgUnloading:"औसत अनलोडिंग", thIdleTime:"खाली समय",
+ thTotalRunning:"कुल चालू समय", thEfficiency:"दक्षता",
+ effFootnote:"दक्षता स्कोर = कुल चालू समय (लोडिंग + यात्रा + अनलोडिंग) ÷ निर्धारित कार्यदिवस घंटे (Admin → Settings)।",
+ analyticsTitle:"विश्लेषण", statTripsCompleted:"पूर्ण ट्रिप", statTimeWaiting:"प्रतीक्षा में बिताया समय",
+ avgByLocation:"स्थान अनुसार औसत समय", thLocation:"स्थान", thAvgLoadSrc:"औसत लोडिंग (स्रोत के रूप में)",
+ thAvgUnlDest:"औसत अनलोडिंग (गंतव्य के रूप में)", timeBreakdown:"समय विभाजन", waitingWord:"प्रतीक्षा",
+ alertsTitle:"अलर्ट", alertsNone:"सब ठीक है — आज कोई देरी नहीं मिली।", thFlags:"चेतावनी", thStatus:"स्थिति",
+ reportsTitle:"रिपोर्ट", tripsTodayLabel:"आज की ट्रिप", exportCsv:"CSV एक्सपोर्ट करें", exportExcel:"Excel एक्सपोर्ट करें",
+ exportPdf:"PDF एक्सपोर्ट करें", noTripsYet:"आज अभी तक कोई ट्रिप नहीं",
+ adminTitle:"एडमिन", adminSettings:"सेटिंग्स", adminUsers:"यूज़र खाते", adminVehicles:"वाहन मास्टर",
+ adminLocations:"स्थान मास्टर", adminGates:"गेट QR कोड",
+ rangeYesterday:"कल", range7d:"पिछले 7 दिन", range30d:"पिछले 30 दिन", rangeMonth:"इस महीने", rangeCustom:"कस्टम",
+ allVehicles:"सभी वाहन",
+ delayModalTitle:"देरी क्यों हुई?", delayReasonLabel:"देरी का कारण", delayReasonPlaceholder:"कारण चुनें…",
+ delayRemarksLabel:"टिप्पणी (वैकल्पिक)", delayRemarksPlaceholder:"अतिरिक्त विवरण जोड़ें…", delaySaveButton:"सेव करें और आगे बढ़ें",
+ delayRequiredNote:"इस चरण में अपेक्षा से अधिक समय लगा। कृपया आगे बढ़ने से पहले कारण दर्ज करें।",
+ tripsPerDay:"प्रतिदिन ट्रिप", delayReasonsBreakdown:"देरी के कारण", noDelaysInRange:"इस अवधि में कोई देरी दर्ज नहीं हुई।",
+ topRoutes:"मुख्य मार्ग", thTrips:"ट्रिप", thAvgTurnaround:"औसत टर्नअराउंड", thReason:"कारण", thRemarks:"टिप्पणी", thDate:"तारीख",
+ adminDelayReasons:"देरी के कारण", noTripsInRange:"इस अवधि में कोई ट्रिप नहीं",
+},
+kn:{
+ tagline:"ಯೋಗಾಬಾರ್ ಮೂಲಕ — ಪ್ರತಿ ಫ್ಯಾಕ್ಟರಿ ಮತ್ತು ವೇರ್‌ಹೌಸ್ ಗೇಟ್ ನಡುವೆ ಲೋಡಿಂಗ್, ಸಾಗಾಣಿಕೆ ಮತ್ತು ಅನ್‌ಲೋಡಿಂಗ್ ಸಮಯವನ್ನು ಟ್ರ್ಯಾಕ್ ಮಾಡಿ.",
+ loginKicker:"ಟೀಮ್ ಲಾಗಿನ್", loginHeading:"ನಿಮ್ಮ ಖಾತೆಗೆ ಲಾಗಿನ್ ಮಾಡಿ",
+ usernameLabel:"ಬಳಕೆದಾರ ಹೆಸರು", usernamePlaceholder:"ನಿಮ್ಮ ಬಳಕೆದಾರ ಹೆಸರು",
+ passwordLabel:"ಪಾಸ್‌ವರ್ಡ್", passwordPlaceholder:"ನಿಮ್ಮ ಪಾಸ್‌ವರ್ಡ್",
+ loginButton:"ಲಾಗಿನ್ ಮಾಡಿ", loginFootnote:"ಖಾತೆ ಇಲ್ಲವೇ? Admin → User Accounts ನಲ್ಲಿ ಖಾತೆ ರಚಿಸಲು ನಿಮ್ಮ ಅಡ್ಮಿನ್ ಅವರನ್ನು ಕೇಳಿ.",
+ setupKicker:"ಮೊದಲ ಬಾರಿಯ ಸೆಟಪ್", setupHeading:"ಮೊದಲ ಅಡ್ಮಿನ್ ಖಾತೆ ರಚಿಸಿ",
+ setupHeroTitle:"SnapTrack ಗೆ ಸ್ವಾಗತ", setupHeroTagline:"ಯೋಗಾಬಾರ್ ಮೂಲಕ — ಪ್ರತಿ ಫ್ಯಾಕ್ಟರಿ ಮತ್ತು ವೇರ್‌ಹೌಸ್ ಗೇಟ್‌ನಲ್ಲಿ ಟರ್ನ್‌ಅರೌಂಡ್, ಲೋಡಿಂಗ್ ಮತ್ತು ಅನ್‌ಲೋಡಿಂಗ್ ದಕ್ಷತೆ.",
+ nameLabel:"ನಿಮ್ಮ ಹೆಸರು", namePlaceholder:"ಉದಾ. ಪ್ರಿಯಾ ರಾವ್",
+ setupUsernamePlaceholder:"ಉದಾ. priya.admin", setupPasswordPlaceholder:"ಕನಿಷ್ಠ 4 ಅಕ್ಷರಗಳು",
+ setupButton:"ಅಡ್ಮಿನ್ ಖಾತೆ ರಚಿಸಿ",
+ setupFootnote:"ಪಾಸ್‌ವರ್ಡ್‌ಗಳನ್ನು ಉಳಿಸುವ ಮೊದಲು ಹ್ಯಾಶ್ ಮಾಡಲಾಗುತ್ತದೆ, ಆದರೆ ಇದು ಚಿಕ್ಕ ವಿಶ್ವಾಸಾರ್ಹ ತಂಡಕ್ಕಾಗಿ ಸರಳ ಇನ್-ಆ್ಯಪ್ ಲಾಗಿನ್ — ಬ್ಯಾಂಕ್ ಮಟ್ಟದ ಭದ್ರತೆ ಅಲ್ಲ. ಇಲ್ಲಿ ಸೂಕ್ಷ್ಮ ಪಾಸ್‌ವರ್ಡ್ ಮರುಬಳಕೆ ಮಾಡಬೇಡಿ. ಈ ಖಾತೆ ನಂತರ ಉಳಿದೆಲ್ಲರ ಖಾತೆ ರಚಿಸಬಹುದು.",
+ routeSource:"ಮೂಲ", routeTransit:"ದಾರಿಯಲ್ಲಿ", routeDestination:"ಗಮ್ಯಸ್ಥಾನ",
+ logout:"ಲಾಗ್ ಔಟ್",
+ roleAdmin:"ಅಡ್ಮಿನ್", roleManager:"ಮ್ಯಾನೇಜರ್", roleOperator:"ಆಪರೇಟರ್", roleDriver:"ಡ್ರೈವರ್",
+ navDeck:"ಟ್ರಿಪ್ ಡೆಸ್ಕ್", navDashboard:"ಡ್ಯಾಶ್‌ಬೋರ್ಡ್", navVehicles:"ವಾಹನಗಳು", navAnalytics:"ವಿಶ್ಲೇಷಣೆ",
+ navAlerts:"ಎಚ್ಚರಿಕೆಗಳು", navReports:"ವರದಿಗಳು", navAdmin:"ಅಡ್ಮಿನ್", navTrip:"ನನ್ನ ಟ್ರಿಪ್",
+ stepReachedSource:"ಮೂಲ ತಲುಪಿದೆ", stepLoadingStart:"ಲೋಡಿಂಗ್ ಪ್ರಾರಂಭ", stepLoadingEnd:"ಲೋಡಿಂಗ್ ಪೂರ್ಣ",
+ stepDeparted:"ಹೊರಟಿದೆ", stepReachedDestination:"ಗಮ್ಯಸ್ಥಾನ ತಲುಪಿದೆ",
+ stepUnloadingStart:"ಅನ್‌ಲೋಡಿಂಗ್ ಪ್ರಾರಂಭ", stepUnloadingEnd:"ಅನ್‌ಲೋಡಿಂಗ್ ಪೂರ್ಣ",
+ step1:"ಹಂತ 1", selectVehicle:"ವಾಹನ ಆಯ್ಕೆಮಾಡಿ", step2:"ಹಂತ 2", fromLocation:"ಎಲ್ಲಿಂದ",
+ step3:"ಹಂತ 3", toLocation:"ಎಲ್ಲಿಗೆ", startTrip:"ಟ್ರಿಪ್ ಪ್ರಾರಂಭಿಸಿ", onTrip:"ಟ್ರಿಪ್‌ನಲ್ಲಿ",
+ pickFromFirst:"ಮೊದಲು \"ಎಲ್ಲಿಂದ\" ಸ್ಥಳ ಆಯ್ಕೆಮಾಡಿ.",
+ tripClosed:"ಟ್ರಿಪ್ ಮುಗಿದಿದೆ", turnaroundTime:"ಟರ್ನ್‌ಅರೌಂಡ್ ಸಮಯ", loadingWord:"ಲೋಡಿಂಗ್",
+ travelWord:"ಪ್ರಯಾಣ", unloadingWord:"ಅನ್‌ಲೋಡಿಂಗ್", startNextTrip:"ಮುಂದಿನ ಟ್ರಿಪ್ ಪ್ರಾರಂಭಿಸಿ",
+ inProgress:"ಪ್ರಗತಿಯಲ್ಲಿದೆ", completedWord:"ಪೂರ್ಣಗೊಂಡಿದೆ",
+ tapInstruction:"ಇದು ಸಂಭವಿಸಿದ ಕ್ಷಣ ಬಟನ್ ಒತ್ತಿ — ಸಮಯ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಉಳಿಯುತ್ತದೆ.",
+ scanInstead:"ಅಥವಾ ಬದಲಿಗೆ {loc} ಗೇಟ್ QR ಸ್ಕ್ಯಾನ್ ಮಾಡಿ",
+ deskLogNewArrival:"ಹೊಸ ವಾಹನ ದಾಖಲಿಸಿ", deskAtThisGate:"ಈ ಗೇಟ್‌ನಲ್ಲಿ", deskVehicleLabel:"ವಾಹನ",
+ deskSelectVehicle:"ವಾಹನ ಆಯ್ಕೆಮಾಡಿ…", deskGoingTo:"ಎಲ್ಲಿಗೆ ಹೋಗುತ್ತಿದೆ", deskSelectDestination:"ಗಮ್ಯಸ್ಥಾನ ಆಯ್ಕೆಮಾಡಿ…",
+ deskDriverName:"ಡ್ರೈವರ್ ಹೆಸರು (ಐಚ್ಛಿಕ — ದಾಖಲೆಗಾಗಿ ಮಾತ್ರ)", deskDriverPlaceholder:"ಉದಾ. ರಮೇಶ್ ಕುಮಾರ್",
+ deskLogArrival:"ಆಗಮನ ದಾಖಲಿಸಿ — ಮೂಲ ತಲುಪಿದೆ", deskAllBusy:"ಎಲ್ಲಾ ಸಕ್ರಿಯ ವಾಹನಗಳು ಈಗಾಗಲೇ ಟ್ರಿಪ್‌ನಲ್ಲಿವೆ.",
+ deskDepartingFromHere:"ಇಲ್ಲಿಂದ ಹೊರಡುವವು", deskNothingDeparting:"ಈಗ ಇಲ್ಲಿಂದ ಹೊರಡಲು ಯಾವುದೇ ವಾಹನ ಇಲ್ಲ.",
+ deskArrivingHere:"ಇಲ್ಲಿಗೆ ಬರುವವು", deskNothingArriving:"ಈಗ ಈ ಸ್ಥಳಕ್ಕೆ ಬರುತ್ತಿರುವ ಯಾವುದೇ ವಾಹನ ಇಲ್ಲ.",
+ deskCompletedToday:"ಇಂದು ಇಲ್ಲಿ ಪೂರ್ಣಗೊಂಡವು", thVehicle:"ವಾಹನ", thRoute:"ಮಾರ್ಗ", thDriver:"ಡ್ರೈವರ್",
+ thClosed:"ಮುಗಿದ ಸಮಯ", stepOf:"ಹಂತ {n} / 7",
+ dashToday:"ಇಂದು", statTotalTrips:"ಒಟ್ಟು ಟ್ರಿಪ್‌ಗಳು", statAvgLoading:"ಸರಾಸರಿ ಲೋಡಿಂಗ್ ಸಮಯ",
+ statAvgTravel:"ಸರಾಸರಿ ಪ್ರಯಾಣ ಸಮಯ", statAvgUnloading:"ಸರಾಸರಿ ಅನ್‌ಲೋಡಿಂಗ್ ಸಮಯ", statUtilization:"ವಾಹನ ಬಳಕೆ",
+ statLongestDelay:"ಅತಿ ಹೆಚ್ಚು ವಿಳಂಬ", statFastestTrip:"ಅತಿ ವೇಗದ ಟ್ರಿಪ್", liveFleetStatus:"ಲೈವ್ ಫ್ಲೀಟ್ ಸ್ಥಿತಿ",
+ thStage:"ಹಂತ", thSince:"ಯಾವಾಗಿನಿಂದ", idleWord:"ಖಾಲಿ", awaitingWord:"ಕಾಯುತ್ತಿದೆ", wrappingUp:"ಮುಗಿಸುತ್ತಿದೆ",
+ vehReportTitle:"ವಾಹನ ವರದಿ", thTripsToday:"ಇಂದಿನ ಟ್ರಿಪ್‌ಗಳು", thAvgLoading:"ಸರಾಸರಿ ಲೋಡಿಂಗ್",
+ thAvgTravel:"ಸರಾಸರಿ ಪ್ರಯಾಣ", thAvgUnloading:"ಸರಾಸರಿ ಅನ್‌ಲೋಡಿಂಗ್", thIdleTime:"ಖಾಲಿ ಸಮಯ",
+ thTotalRunning:"ಒಟ್ಟು ಚಾಲನಾ ಸಮಯ", thEfficiency:"ದಕ್ಷತೆ",
+ effFootnote:"ದಕ್ಷತಾ ಅಂಕ = ಒಟ್ಟು ಚಾಲನಾ ಸಮಯ (ಲೋಡಿಂಗ್ + ಪ್ರಯಾಣ + ಅನ್‌ಲೋಡಿಂಗ್) ÷ ನಿಗದಿತ ಕೆಲಸದ ದಿನದ ಗಂಟೆಗಳು (Admin → Settings).",
+ analyticsTitle:"ವಿಶ್ಲೇಷಣೆ", statTripsCompleted:"ಪೂರ್ಣಗೊಂಡ ಟ್ರಿಪ್‌ಗಳು", statTimeWaiting:"ಕಾಯುವಿಕೆಯಲ್ಲಿ ಕಳೆದ ಸಮಯ",
+ avgByLocation:"ಸ್ಥಳವಾರು ಸರಾಸರಿ ಸಮಯ", thLocation:"ಸ್ಥಳ", thAvgLoadSrc:"ಸರಾಸರಿ ಲೋಡಿಂಗ್ (ಮೂಲವಾಗಿ)",
+ thAvgUnlDest:"ಸರಾಸರಿ ಅನ್‌ಲೋಡಿಂಗ್ (ಗಮ್ಯಸ್ಥಾನವಾಗಿ)", timeBreakdown:"ಸಮಯ ವಿಭಜನೆ", waitingWord:"ಕಾಯುವಿಕೆ",
+ alertsTitle:"ಎಚ್ಚರಿಕೆಗಳು", alertsNone:"ಎಲ್ಲಾ ಸರಿಯಾಗಿದೆ — ಇಂದು ಯಾವುದೇ ವಿಳಂಬ ಕಂಡುಬಂದಿಲ್ಲ.", thFlags:"ಗುರುತುಗಳು", thStatus:"ಸ್ಥಿತಿ",
+ reportsTitle:"ವರದಿಗಳು", tripsTodayLabel:"ಇಂದಿನ ಟ್ರಿಪ್(ಗಳು)", exportCsv:"CSV ಎಕ್ಸ್‌ಪೋರ್ಟ್ ಮಾಡಿ", exportExcel:"Excel ಎಕ್ಸ್‌ಪೋರ್ಟ್ ಮಾಡಿ",
+ exportPdf:"PDF ಎಕ್ಸ್‌ಪೋರ್ಟ್ ಮಾಡಿ", noTripsYet:"ಇಂದು ಇನ್ನೂ ಯಾವುದೇ ಟ್ರಿಪ್ ಇಲ್ಲ",
+ adminTitle:"ಅಡ್ಮಿನ್", adminSettings:"ಸೆಟ್ಟಿಂಗ್‌ಗಳು", adminUsers:"ಬಳಕೆದಾರ ಖಾತೆಗಳು", adminVehicles:"ವಾಹನ ಮಾಸ್ಟರ್",
+ adminLocations:"ಸ್ಥಳ ಮಾಸ್ಟರ್", adminGates:"ಗೇಟ್ QR ಕೋಡ್‌ಗಳು",
+ rangeYesterday:"ನಿನ್ನೆ", range7d:"ಕಳೆದ 7 ದಿನಗಳು", range30d:"ಕಳೆದ 30 ದಿನಗಳು", rangeMonth:"ಈ ತಿಂಗಳು", rangeCustom:"ಕಸ್ಟಮ್",
+ allVehicles:"ಎಲ್ಲಾ ವಾಹನಗಳು",
+ delayModalTitle:"ಏಕೆ ವಿಳಂಬವಾಯಿತು?", delayReasonLabel:"ವಿಳಂಬದ ಕಾರಣ", delayReasonPlaceholder:"ಕಾರಣ ಆಯ್ಕೆಮಾಡಿ…",
+ delayRemarksLabel:"ಟಿಪ್ಪಣಿ (ಐಚ್ಛಿಕ)", delayRemarksPlaceholder:"ಹೆಚ್ಚಿನ ವಿವರ ಸೇರಿಸಿ…", delaySaveButton:"ಉಳಿಸಿ ಮತ್ತು ಮುಂದುವರಿಸಿ",
+ delayRequiredNote:"ಈ ಹಂತ ನಿರೀಕ್ಷೆಗಿಂತ ಹೆಚ್ಚು ಸಮಯ ತೆಗೆದುಕೊಂಡಿತು. ಮುಂದುವರಿಯುವ ಮೊದಲು ದಯವಿಟ್ಟು ಕಾರಣ ದಾಖಲಿಸಿ.",
+ tripsPerDay:"ಪ್ರತಿದಿನದ ಟ್ರಿಪ್‌ಗಳು", delayReasonsBreakdown:"ವಿಳಂಬದ ಕಾರಣಗಳು", noDelaysInRange:"ಈ ಅವಧಿಯಲ್ಲಿ ಯಾವುದೇ ವಿಳಂಬ ದಾಖಲಾಗಿಲ್ಲ.",
+ topRoutes:"ಪ್ರಮುಖ ಮಾರ್ಗಗಳು", thTrips:"ಟ್ರಿಪ್‌ಗಳು", thAvgTurnaround:"ಸರಾಸರಿ ಟರ್ನ್‌ಅರೌಂಡ್", thReason:"ಕಾರಣ", thRemarks:"ಟಿಪ್ಪಣಿ", thDate:"ದಿನಾಂಕ",
+ adminDelayReasons:"ವಿಳಂಬದ ಕಾರಣಗಳು", noTripsInRange:"ಈ ಅವಧಿಯಲ್ಲಿ ಯಾವುದೇ ಟ್ರಿಪ್ ಇಲ್ಲ",
+},
+ta:{
+ tagline:"யோகாபார் வழங்கும் — ஒவ்வொரு தொழிற்சாலை மற்றும் கிடங்கு வாயில் இடையே ஏற்றுதல், போக்குவரத்து மற்றும் இறக்கும் நேரத்தை கண்காணிக்கவும்.",
+ loginKicker:"குழு உள்நுழைவு", loginHeading:"உங்கள் கணக்கில் உள்நுழையவும்",
+ usernameLabel:"பயனர்பெயர்", usernamePlaceholder:"உங்கள் பயனர்பெயர்",
+ passwordLabel:"கடவுச்சொல்", passwordPlaceholder:"உங்கள் கடவுச்சொல்",
+ loginButton:"உள்நுழைக", loginFootnote:"கணக்கு இல்லையா? Admin → User Accounts இல் கணக்கை உருவாக்க உங்கள் நிர்வாகியிடம் கேளுங்கள்.",
+ setupKicker:"முதல் முறை அமைவு", setupHeading:"முதல் நிர்வாகி கணக்கை உருவாக்கவும்",
+ setupHeroTitle:"SnapTrack க்கு வரவேற்கிறோம்", setupHeroTagline:"யோகாபார் வழங்கும் — ஒவ்வொரு தொழிற்சாலை மற்றும் கிடங்கு வாயிலிலும் திரும்பும் நேரம், ஏற்றுதல் மற்றும் இறக்குதல் திறன்.",
+ nameLabel:"உங்கள் பெயர்", namePlaceholder:"எ.கா. பிரியா ராவ்",
+ setupUsernamePlaceholder:"எ.கா. priya.admin", setupPasswordPlaceholder:"குறைந்தது 4 எழுத்துகள்",
+ setupButton:"நிர்வாகி கணக்கை உருவாக்கு",
+ setupFootnote:"கடவுச்சொற்கள் சேமிக்கப்படுவதற்கு முன் ஹாஷ் செய்யப்படுகின்றன, ஆனால் இது ஒரு சிறிய நம்பகமான குழுவிற்கான எளிய இன்-ஆப் உள்நுழைவு — வங்கி அளவிலான பாதுகாப்பு அல்ல. இங்கே முக்கியமான கடவுச்சொல்லை மீண்டும் பயன்படுத்த வேண்டாம். இந்த கணக்கு பின்னர் மற்ற அனைவரையும் உருவாக்க முடியும்.",
+ routeSource:"மூலம்", routeTransit:"வழியில்", routeDestination:"இலக்கு",
+ logout:"வெளியேறு",
+ roleAdmin:"நிர்வாகி", roleManager:"மேலாளர்", roleOperator:"ஆபரேட்டர்", roleDriver:"ஓட்டுநர்",
+ navDeck:"டிரிப் டெஸ்க்", navDashboard:"டாஷ்போர்டு", navVehicles:"வாகனங்கள்", navAnalytics:"பகுப்பாய்வு",
+ navAlerts:"எச்சரிக்கைகள்", navReports:"அறிக்கைகள்", navAdmin:"நிர்வாகி", navTrip:"எனது டிரிப்",
+ stepReachedSource:"மூலத்தை அடைந்தது", stepLoadingStart:"ஏற்றுதல் தொடங்கியது", stepLoadingEnd:"ஏற்றுதல் முடிந்தது",
+ stepDeparted:"புறப்பட்டது", stepReachedDestination:"இலக்கை அடைந்தது",
+ stepUnloadingStart:"இறக்குதல் தொடங்கியது", stepUnloadingEnd:"இறக்குதல் முடிந்தது",
+ step1:"படி 1", selectVehicle:"வாகனத்தை தேர்ந்தெடுக்கவும்", step2:"படி 2", fromLocation:"எங்கிருந்து",
+ step3:"படி 3", toLocation:"எங்கு வரை", startTrip:"டிரிப்பைத் தொடங்கு", onTrip:"டிரிப்பில் உள்ளது",
+ pickFromFirst:"முதலில் \"எங்கிருந்து\" இடத்தைத் தேர்ந்தெடுக்கவும்.",
+ tripClosed:"டிரிப் முடிந்தது", turnaroundTime:"திரும்பும் நேரம்", loadingWord:"ஏற்றுதல்",
+ travelWord:"பயணம்", unloadingWord:"இறக்குதல்", startNextTrip:"அடுத்த டிரிப்பைத் தொடங்கு",
+ inProgress:"நடந்துகொண்டிருக்கிறது", completedWord:"முடிந்தது",
+ tapInstruction:"இது நடக்கும் தருணத்தில் பொத்தானை அழுத்தவும் — நேரம் தானாகவே சேமிக்கப்படும்.",
+ scanInstead:"அல்லது அதற்கு பதிலாக {loc} வாயில் QR-ஐ ஸ்கேன் செய்யவும்",
+ deskLogNewArrival:"புதிய வாகனத்தை பதிவு செய்", deskAtThisGate:"இந்த வாயிலில்", deskVehicleLabel:"வாகனம்",
+ deskSelectVehicle:"வாகனத்தைத் தேர்ந்தெடுக்கவும்…", deskGoingTo:"எங்கு செல்கிறது", deskSelectDestination:"இலக்கைத் தேர்ந்தெடுக்கவும்…",
+ deskDriverName:"ஓட்டுநர் பெயர் (விருப்பத்தேர்வு — பதிவுக்காக மட்டும்)", deskDriverPlaceholder:"எ.கா. ரமேஷ் குமார்",
+ deskLogArrival:"வருகையை பதிவு செய் — மூலத்தை அடைந்தது", deskAllBusy:"அனைத்து செயலில் உள்ள வாகனங்களும் ஏற்கனவே டிரிப்பில் உள்ளன.",
+ deskDepartingFromHere:"இங்கிருந்து புறப்படுபவை", deskNothingDeparting:"இப்போது இங்கிருந்து புறப்பட காத்திருக்கும் வாகனம் இல்லை.",
+ deskArrivingHere:"இங்கு வருபவை", deskNothingArriving:"இப்போது இந்த இடத்திற்கு வரும் வாகனம் இல்லை.",
+ deskCompletedToday:"இன்று இங்கு முடிந்தவை", thVehicle:"வாகனம்", thRoute:"பாதை", thDriver:"ஓட்டுநர்",
+ thClosed:"முடிந்த நேரம்", stepOf:"படி {n} / 7",
+ dashToday:"இன்று", statTotalTrips:"மொத்த டிரிப்கள்", statAvgLoading:"சராசரி ஏற்றுதல் நேரம்",
+ statAvgTravel:"சராசரி பயண நேரம்", statAvgUnloading:"சராசரி இறக்குதல் நேரம்", statUtilization:"வாகன பயன்பாடு",
+ statLongestDelay:"மிக நீண்ட தாமதம்", statFastestTrip:"மிக வேகமான டிரிப்", liveFleetStatus:"நேரடி வாகனத் திரள் நிலை",
+ thStage:"நிலை", thSince:"எப்போதிலிருந்து", idleWord:"சும்மா", awaitingWord:"காத்திருக்கிறது", wrappingUp:"முடிக்கிறது",
+ vehReportTitle:"வாகன அறிக்கை", thTripsToday:"இன்றைய டிரிப்கள்", thAvgLoading:"சராசரி ஏற்றுதல்",
+ thAvgTravel:"சராசரி பயணம்", thAvgUnloading:"சராசரி இறக்குதல்", thIdleTime:"சும்மா நேரம்",
+ thTotalRunning:"மொத்த ஓட்ட நேரம்", thEfficiency:"திறன்",
+ effFootnote:"திறன் மதிப்பெண் = மொத்த ஓட்ட நேரம் (ஏற்றுதல் + பயணம் + இறக்குதல்) ÷ நிர்ணயிக்கப்பட்ட வேலை நாள் மணிநேரங்கள் (Admin → Settings).",
+ analyticsTitle:"பகுப்பாய்வு", statTripsCompleted:"முடிந்த டிரிப்கள்", statTimeWaiting:"காத்திருப்பில் செலவிட்ட நேரம்",
+ avgByLocation:"இடம் வாரியாக சராசரி நேரம்", thLocation:"இடம்", thAvgLoadSrc:"சராசரி ஏற்றுதல் (மூலமாக)",
+ thAvgUnlDest:"சராசரி இறக்குதல் (இலக்காக)", timeBreakdown:"நேர பிரிவு", waitingWord:"காத்திருப்பு",
+ alertsTitle:"எச்சரிக்கைகள்", alertsNone:"எல்லாம் சரி — இன்று தாமதங்கள் எதுவும் இல்லை.", thFlags:"குறியீடுகள்", thStatus:"நிலை",
+ reportsTitle:"அறிக்கைகள்", tripsTodayLabel:"இன்றைய டிரிப்(கள்)", exportCsv:"CSV ஏற்றுமதி", exportExcel:"Excel ஏற்றுமதி",
+ exportPdf:"PDF ஏற்றுமதி", noTripsYet:"இன்று இதுவரை டிரிப் இல்லை",
+ adminTitle:"நிர்வாகி", adminSettings:"அமைப்புகள்", adminUsers:"பயனர் கணக்குகள்", adminVehicles:"வாகன மாஸ்டர்",
+ adminLocations:"இட மாஸ்டர்", adminGates:"வாயில் QR குறியீடுகள்",
+ rangeYesterday:"நேற்று", range7d:"கடந்த 7 நாட்கள்", range30d:"கடந்த 30 நாட்கள்", rangeMonth:"இந்த மாதம்", rangeCustom:"தனிப்பயன்",
+ allVehicles:"அனைத்து வாகனங்கள்",
+ delayModalTitle:"ஏன் தாமதமானது?", delayReasonLabel:"தாமத காரணம்", delayReasonPlaceholder:"காரணத்தைத் தேர்ந்தெடுக்கவும்…",
+ delayRemarksLabel:"குறிப்புகள் (விருப்பத்தேர்வு)", delayRemarksPlaceholder:"கூடுதல் விவரம் சேர்க்கவும்…", delaySaveButton:"சேமித்து தொடரவும்",
+ delayRequiredNote:"இந்த படி எதிர்பார்த்ததை விட அதிக நேரம் எடுத்தது. தொடர்வதற்கு முன் காரணத்தைப் பதிவு செய்யவும்.",
+ tripsPerDay:"ஒரு நாளைய டிரிப்கள்", delayReasonsBreakdown:"தாமத காரணங்கள்", noDelaysInRange:"இந்த காலகட்டத்தில் தாமதங்கள் பதிவு செய்யப்படவில்லை.",
+ topRoutes:"முதன்மை பாதைகள்", thTrips:"டிரிப்கள்", thAvgTurnaround:"சராசரி திரும்பும் நேரம்", thReason:"காரணம்", thRemarks:"குறிப்புகள்", thDate:"தேதி",
+ adminDelayReasons:"தாமத காரணங்கள்", noTripsInRange:"இந்த காலகட்டத்தில் டிரிப்கள் இல்லை",
+},
+};
+function i18nInterp(str, vars){ if(!vars) return str; return str.replace(/\{(\w+)\}/g, (m,k)=> (vars[k]!=null?vars[k]:'')); }
+function t(key, vars){
+  const enStr = (I18N.en[key]!=null) ? I18N.en[key] : key;
+  const enOut = i18nInterp(enStr, vars);
+  if(S.lang==='en' || !S.lang) return escapeHtml(enOut);
+  const trStr = (I18N[S.lang] && I18N[S.lang][key]!=null) ? I18N[S.lang][key] : enStr;
+  const trOut = i18nInterp(trStr, vars);
+  return '<span class="i18n"><span class="i18n-main">'+escapeHtml(trOut)+'</span><span class="i18n-en">'+escapeHtml(enOut)+'</span></span>';
+}
+function tLine(key, vars){
+  const enStr = (I18N.en[key]!=null) ? I18N.en[key] : key;
+  const enOut = i18nInterp(enStr, vars);
+  if(S.lang==='en' || !S.lang) return enOut;
+  const trStr = (I18N[S.lang] && I18N[S.lang][key]!=null) ? I18N[S.lang][key] : enStr;
+  const trOut = i18nInterp(trStr, vars);
+  return trOut + ' (' + enOut + ')';
+}
+async function setLang(code){ S.lang = code; await sSet('lang_pref', code, false); render(); }
+function langSwitchHtml(compact){
+  if(compact){
+    return '<div class="lang-switch-top"><select onchange="setLang(this.value)">'+
+      Object.keys(LANGS).map(c=>'<option value="'+c+'" '+(S.lang===c?'selected':'')+'>'+LANGS[c]+'</option>').join('')+
+      '</select></div>';
+  }
+  return '<div class="lang-switch">'+Object.keys(LANGS).map(c=>
+    '<button class="lang-btn '+(S.lang===c?'sel':'')+'" onclick="setLang(\''+c+'\')">'+LANGS[c]+'</button>'
+  ).join('')+'</div>';
+}
+
+let S = {
+  user: null, view: 'login', needsSetup:false, lang:'en',
+  vehicles: [], locations: [], settings: {}, trips: [], users: [], delayReasons: [], tripMonthsIndex: [],
+  tripDraft: { vehicleId:null, sourceId:null, destId:null },
+  deskDraft: { vehicleId:null, destId:null, driverName:'' },
+  deskLocationId: null,
+  vehFilter: { preset:'today', from:null, to:null, vehicleId:'all' },
+  analyticsFilter: { preset:'today', from:null, to:null, vehicleId:'all' },
+  reportsFilter: { preset:'today', from:null, to:null, vehicleId:'all' },
+  dashFilter: { preset:'today', from:null, to:null, vehicleId:'all' },
+  delayModal: null,
+  adminTab: 'settings',
+  loaded:false, loginError:'', setupError:'',
+  scanCtx:null
+};
+
+const DEFAULT_SETTINGS = { expectedLoading:30, expectedUnloading:25, expectedTravel:60, workdayHours:10 };
+const DEFAULT_VEHICLES = ['KA51C7149','MH43U6997','KA529430','KA52A8993','KA526702']
+  .map((n,i)=>({id:'v'+(i+1), number:n, active:true}));
+const DEFAULT_LOCATIONS = ['YB Factory','YB FG Warehouse','RM Warehouse','Tumkur Wh','Tumkur New Wh']
+  .map((n,i)=>({id:'l'+(i+1), name:n, active:true}));
+const DEFAULT_DELAY_REASONS = ['Invoicing Delay','Unloading Delay','Production Entry Delay','Manpower Issue','Storage Pallet Issue']
+  .map((n,i)=>({id:'dr'+(i+1), label:n, active:true}));
+const DELAY_CHECK_STEP = { loadingEnd:'loading', reachedDestination:'travel', unloadingEnd:'unloading' };
+
+/* ---------------- storage helpers ---------------- */
+const API_BASE = '/api';
+let AUTH_TOKEN = sessionStorage.getItem('snaptrack_token') || null;
+
+function getStoredToken(){
+  return sessionStorage.getItem('snaptrack_token') || localStorage.getItem('snaptrack_token') || null;
+}
+function persistToken(token){
+  if(token){ sessionStorage.setItem('snaptrack_token', token); }
+  else{ sessionStorage.removeItem('snaptrack_token'); localStorage.removeItem('snaptrack_token'); }
+}
+async function apiRequest(path, { method='GET', body, auth=true } = {}){
+  const headers = {};
+  if(body != null) headers['Content-Type'] = 'application/json';
+  if(auth && AUTH_TOKEN) headers['Authorization'] = `Bearer ${AUTH_TOKEN}`;
+  const res = await fetch(`${API_BASE}/${String(path).replace(/^\/+/, '')}`, {
+    method,
+    headers,
+    body: body == null ? undefined : JSON.stringify(body)
+  });
+  const text = await res.text();
+  let data = null;
+  if(text){ try{ data = JSON.parse(text); } catch(e){ data = null; } }
+  if(!res.ok){ throw new Error((data && data.error) || `Request failed (${res.status})`); }
+  return data;
+}
+async function sGet(key, shared){
+  if(key==='last_username') return localStorage.getItem('snaptrack_last_username');
+  if(key==='lang_pref') return localStorage.getItem('snaptrack_lang_pref');
+  if(key==='vehicles' && S) return S.vehicles;
+  if(key==='locations' && S) return S.locations;
+  if(key==='settings' && S) return S.settings;
+  if(key==='users' && S) return S.users;
+  if(key==='delay_reasons' && S) return S.delayReasons;
+  if(key==='trips' && S) return S.trips;
+  return null;
+}
+async function sSet(key, value, shared){
+  if(key==='last_username'){ if(value==null) localStorage.removeItem('snaptrack_last_username'); else localStorage.setItem('snaptrack_last_username', value); return; }
+  if(key==='lang_pref'){ if(value==null) localStorage.removeItem('snaptrack_lang_pref'); else localStorage.setItem('snaptrack_lang_pref', value); return; }
+}
+function simpleHash(str){
+  let h=5381;
+  for(let i=0;i<str.length;i++){ h=((h<<5)+h)+str.charCodeAt(i); h=h|0; }
+  return (h>>>0).toString(16) + str.length.toString(16);
+}
+
+async function boot(){
+  AUTH_TOKEN = getStoredToken();
+  const [bootData, lastUsername, langPref] = await Promise.all([
+    AUTH_TOKEN ? apiRequest('bootstrap', { auth:true }).catch(()=>null) : Promise.resolve(null),
+    sGet('last_username', false),
+    sGet('lang_pref', false)
+  ]);
+
+  if(bootData){
+    S.vehicles = (bootData.vehicles||[]).map(v=>({ ...v, active: v.active !== 0 && v.active !== false }));
+    S.locations = (bootData.locations||[]).map(l=>({ ...l, active: l.active !== 0 && l.active !== false }));
+    S.settings = Object.assign({}, DEFAULT_SETTINGS, bootData.settings || {});
+    S.users = (bootData.users||[]).map(u=>({ ...u, active: u.active !== 0 && u.active !== false }));
+    S.delayReasons = (bootData.delayReasons||[]).map(r=>({ ...r, active: r.active !== 0 && r.active !== false }));
+    S.user = bootData.me ? { ...bootData.me, active: bootData.me.active !== 0 && bootData.me.active !== false } : null;
+    S.needsSetup = false;
+    S.view = S.user ? defaultTabFor(S.user.role) : 'login';
+  } else {
+    let needsSetup = false;
+    try{ const state = await apiRequest('setup-status', { auth:false }); needsSetup = !!state?.needsSetup; }
+    catch(e){ needsSetup = false; }
+    S.vehicles = DEFAULT_VEHICLES.slice();
+    S.locations = DEFAULT_LOCATIONS.slice();
+    S.settings = Object.assign({}, DEFAULT_SETTINGS);
+    S.users = [];
+    S.delayReasons = DEFAULT_DELAY_REASONS.slice();
+    S.user = null;
+    S.needsSetup = needsSetup;
+    S.view = needsSetup ? 'setup' : 'login';
+  }
+
+  S.trips = await loadAllTrips();
+  S.prefillUsername = lastUsername || '';
+  S.lang = langPref || 'en';
+  S.deskLocationId = (S.locations[0] && S.locations[0].id) || null;
+  S.loaded = true;
+  render();
+}
+
+function monthKeyOf(ts){ return new Date(ts).getFullYear()+'-'+String(new Date(ts).getMonth()+1).padStart(2,'0'); }
+async function loadAllTrips(){
+  if(!AUTH_TOKEN) return [];
+  try{ const rows = await apiRequest('trips', { auth:true }); return Array.isArray(rows) ? rows.map(tr=>({...tr, ts: tr.ts || {}, delays: tr.delays || {}})) : []; }
+  catch(e){ return []; }
+}
+async function createTripPersisted(trip){
+  const payload = {
+    vehicleId: trip.vehicleId,
+    sourceId: trip.sourceId,
+    destId: trip.destId,
+    driverName: trip.driverName
+  };
+  try{
+    const created = await apiRequest('trips', { method:'POST', body: payload, auth:true });
+    const merged = { ...trip, ...created, ts: created.ts || trip.ts, delays: created.delays || {} };
+    S.trips.push(merged);
+    return merged;
+  }catch(e){
+    if(String(e.message).includes('already has an active trip')){ const err = new Error('VEHICLE_BUSY'); throw err; }
+    throw e;
+  }
+}
+async function mutateTrip(tripId, mutatorFn){
+  const inMemory = S.trips.find(t=>t.id===tripId);
+  if(!inMemory) return null;
+  const copy = JSON.parse(JSON.stringify(inMemory));
+  mutatorFn(copy);
+  const idx = S.trips.findIndex(t=>t.id===tripId);
+  if(idx >= 0) S.trips[idx] = copy;
+  return copy;
+}
+
+async function saveVehicles(){
+  const serverItems = await apiRequest('vehicles', { auth:true }).catch(()=>[]);
+  const currentIds = new Set(S.vehicles.map(v=>v.id));
+  const serverIds = new Set(serverItems.map(v=>v.id));
+  for(const item of S.vehicles){
+    const existing = serverItems.find(v=>v.id===item.id);
+    if(!existing){
+      const created = await apiRequest('vehicles', { method:'POST', body:{ number:item.number }, auth:true });
+      item.id = created.id;
+      item.number = created.number;
+      item.active = created.active !== 0 && created.active !== false;
+    } else if(existing.number !== item.number || (existing.active !== 0 && existing.active !== false) !== (item.active !== 0 && item.active !== false)){
+      await apiRequest(`vehicles/${item.id}`, { method:'PATCH', body:{ number:item.number, active:item.active }, auth:true });
+    }
+  }
+  for(const item of serverItems){ if(!currentIds.has(item.id)) await apiRequest(`vehicles/${item.id}`, { method:'DELETE', auth:true }); }
+}
+async function saveLocations(){
+  const serverItems = await apiRequest('locations', { auth:true }).catch(()=>[]);
+  const currentIds = new Set(S.locations.map(v=>v.id));
+  const serverIds = new Set(serverItems.map(v=>v.id));
+  for(const item of S.locations){
+    const existing = serverItems.find(v=>v.id===item.id);
+    if(!existing){
+      const created = await apiRequest('locations', { method:'POST', body:{ name:item.name }, auth:true });
+      item.id = created.id;
+      item.name = created.name;
+      item.active = created.active !== 0 && created.active !== false;
+    } else if(existing.name !== item.name || (existing.active !== 0 && existing.active !== false) !== (item.active !== 0 && item.active !== false)){
+      await apiRequest(`locations/${item.id}`, { method:'PATCH', body:{ name:item.name, active:item.active }, auth:true });
+    }
+  }
+  for(const item of serverItems){ if(!currentIds.has(item.id)) await apiRequest(`locations/${item.id}`, { method:'DELETE', auth:true }); }
+}
+async function saveSettings(){
+  await apiRequest('settings', { method:'PUT', body:{ expectedLoading:S.settings.expectedLoading, expectedUnloading:S.settings.expectedUnloading, expectedTravel:S.settings.expectedTravel, workdayHours:S.settings.workdayHours }, auth:true });
+}
+async function saveUsers(){
+  return Promise.resolve();
+}
+async function saveDelayReasons(){
+  const serverItems = await apiRequest('delay-reasons', { auth:true }).catch(()=>[]);
+  const currentIds = new Set(S.delayReasons.map(v=>v.id));
+  for(const item of S.delayReasons){
+    const existing = serverItems.find(v=>v.id===item.id);
+    if(!existing){
+      const created = await apiRequest('delay-reasons', { method:'POST', body:{ label:item.label }, auth:true });
+      item.id = created.id;
+      item.label = created.label;
+      item.active = created.active !== 0 && created.active !== false;
+    } else if(existing.label !== item.label || (existing.active !== 0 && existing.active !== false) !== (item.active !== 0 && item.active !== false)){
+      await apiRequest(`delay-reasons/${item.id}`, { method:'PATCH', body:{ label:item.label, active:item.active }, auth:true });
+    }
+  }
+  for(const item of serverItems){ if(!currentIds.has(item.id)) await apiRequest(`delay-reasons/${item.id}`, { method:'DELETE', auth:true }); }
+}
+
+/* ---------------- utils ---------------- */
+function uid(p){ return p+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function fmtTime(ts){ if(!ts) return '—'; const d=new Date(ts); return d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}); }
+function fmtDate(ts){ if(!ts) return '—'; const d=new Date(ts); return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'}); }
+function fmtDur(ms){
+  if(ms==null || isNaN(ms) || ms<0) return '—';
+  const m = Math.round(ms/60000);
+  if(m<60) return m+'m';
+  return Math.floor(m/60)+'h '+(m%60)+'m';
+}
+function isToday(ts){ const d=new Date(ts), n=new Date(); return d.getFullYear()===n.getFullYear() && d.getMonth()===n.getMonth() && d.getDate()===n.getDate(); }
+function escapeHtml(s){ return (s||'').toString().replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function nextStepKey(trip){ const filled = STEP_KEYS.filter(k=>trip.ts[k]); return STEP_KEYS[filled.length] || null; }
+function vehicleNumber(id){ const v=S.vehicles.find(v=>v.id===id); return v?v.number:'—'; }
+function locationName(id){ const l=S.locations.find(l=>l.id===id); return l?l.name:'—'; }
+function activeTripForVehicle(vid){ return S.trips.find(t=>t.vehicleId===vid && t.status==='in_progress'); }
+
+function tripMetrics(t){
+  const ts=t.ts;
+  const loadingTime = (ts.loadingEnd && ts.loadingStart) ? ts.loadingEnd-ts.loadingStart : null;
+  const travelTime = (ts.reachedDestination && ts.departed) ? ts.reachedDestination-ts.departed : null;
+  const unloadingTime = (ts.unloadingEnd && ts.unloadingStart) ? ts.unloadingEnd-ts.unloadingStart : null;
+  const waitAtSource = (ts.loadingStart && ts.reachedSource) ? ts.loadingStart-ts.reachedSource : null;
+  const waitAtDest = (ts.unloadingStart && ts.reachedDestination) ? ts.unloadingStart-ts.reachedDestination : null;
+  const totalWait = (waitAtSource||0)+(waitAtDest||0);
+  const turnaround = (ts.unloadingEnd && ts.reachedSource) ? ts.unloadingEnd-ts.reachedSource : null;
+  const running = (loadingTime||0)+(travelTime||0)+(unloadingTime||0);
+  return {loadingTime,travelTime,unloadingTime,waitAtSource,waitAtDest,totalWait,turnaround,running};
+}
+function tripFlags(t){
+  const m = tripMetrics(t); const st = S.settings; const flags=[];
+  if(m.loadingTime!=null && m.loadingTime > st.expectedLoading*60000) flags.push('Loading > '+st.expectedLoading+'m');
+  if(m.travelTime!=null && m.travelTime > st.expectedTravel*60000) flags.push('Travel > '+st.expectedTravel+'m');
+  if(m.unloadingTime!=null && m.unloadingTime > st.expectedUnloading*60000) flags.push('Unloading > '+st.expectedUnloading+'m');
+  return flags;
+}
+function vehicleIdleMs(vid){
+  const vt = S.trips.filter(t=>t.vehicleId===vid).sort((a,b)=>b.createdAt-a.createdAt);
+  if(activeTripForVehicle(vid)) return 0;
+  if(!vt.length) return null;
+  const last = vt[0];
+  const lastTs = Math.max(...Object.values(last.ts).filter(Boolean), last.createdAt);
+  return Date.now()-lastTs;
+}
+function roleLabel(r){ return {admin:'Admin', manager:'Manager', operator:'Operator', driver:'Driver'}[r]||r; }
+
+/* ---------------- date range filtering (shared by Vehicles / Analytics / Reports) ---------------- */
+function startOfDay(d){ const x=new Date(d); x.setHours(0,0,0,0); return x.getTime(); }
+function endOfDay(d){ const x=new Date(d); x.setHours(23,59,59,999); return x.getTime(); }
+function dateInputVal(ms){ const d=new Date(ms); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function presetRangeMs(fs){
+  const now = new Date();
+  if(fs.preset==='today') return {start:startOfDay(now), end:endOfDay(now)};
+  if(fs.preset==='yesterday'){ const y=new Date(now); y.setDate(y.getDate()-1); return {start:startOfDay(y), end:endOfDay(y)}; }
+  if(fs.preset==='7d'){ const s=new Date(now); s.setDate(s.getDate()-6); return {start:startOfDay(s), end:endOfDay(now)}; }
+  if(fs.preset==='30d'){ const s=new Date(now); s.setDate(s.getDate()-29); return {start:startOfDay(s), end:endOfDay(now)}; }
+  if(fs.preset==='month'){ const s=new Date(now.getFullYear(), now.getMonth(), 1); return {start:startOfDay(s), end:endOfDay(now)}; }
+  if(fs.preset==='custom'){
+    const s = fs.from ? startOfDay(new Date(fs.from)) : startOfDay(now);
+    const e = fs.to ? endOfDay(new Date(fs.to)) : endOfDay(now);
+    return {start:Math.min(s,e), end:Math.max(s,e)};
+  }
+  return {start:startOfDay(now), end:endOfDay(now)};
+}
+function daysInRange(fs){
+  const {start,end} = presetRangeMs(fs);
+  return Math.max(1, Math.round((end-start)/86400000));
+}
+function tripsInRange(fs){
+  const {start,end} = presetRangeMs(fs);
+  return S.trips.filter(tr=> tr.createdAt>=start && tr.createdAt<=end && (fs.vehicleId==='all' || tr.vehicleId===fs.vehicleId));
+}
+const RANGE_PRESETS = [['today','dashToday'],['yesterday','rangeYesterday'],['7d','range7d'],['30d','range30d'],['month','rangeMonth'],['custom','rangeCustom']];
+function rangeBarHtml(stateKey, showVehiclePicker){
+  const fs = S[stateKey];
+  return `<div class="toolbar" style="margin-bottom:16px;">
+    <div class="pill-row">
+      ${RANGE_PRESETS.map(([k,lk])=>`<button class="btn btn-sm ${fs.preset===k?'btn-dark':'btn-outline'}" onclick="setRangePreset('${stateKey}','${k}')">${tLine(lk)}</button>`).join('')}
+      ${fs.preset==='custom' ? `<input type="date" value="${fs.from||dateInputVal(Date.now())}" onchange="setRangeCustom('${stateKey}','from',this.value)" style="padding:7px 10px;border-radius:8px;border:1.5px solid var(--line);font-size:12.5px;">
+      <input type="date" value="${fs.to||dateInputVal(Date.now())}" onchange="setRangeCustom('${stateKey}','to',this.value)" style="padding:7px 10px;border-radius:8px;border:1.5px solid var(--line);font-size:12.5px;">` : ''}
+    </div>
+    ${showVehiclePicker ? `<select onchange="setRangeVehicle('${stateKey}',this.value)" style="padding:7px 10px;border-radius:8px;border:1.5px solid var(--line);font-size:12.5px;font-weight:600;">
+      <option value="all" ${fs.vehicleId==='all'?'selected':''}>${tLine('allVehicles')}</option>
+      ${S.vehicles.map(v=>`<option value="${v.id}" ${fs.vehicleId===v.id?'selected':''}>${v.number}</option>`).join('')}
+    </select>` : ''}
+  </div>`;
+}
+function setRangePreset(stateKey, preset){ S[stateKey].preset=preset; render(); }
+function setRangeCustom(stateKey, which, val){ S[stateKey][which]=val; S[stateKey].preset='custom'; render(); }
+function setRangeVehicle(stateKey, vid){ S[stateKey].vehicleId=vid; render(); }
+function dayBucketsFor(rangeAll, start, end){
+  const buckets = [];
+  for(let d=start; d<=end; d+=86400000){
+    const dayStart=startOfDay(d), dayEnd=endOfDay(d);
+    const count = rangeAll.filter(t=>t.createdAt>=dayStart && t.createdAt<=dayEnd).length;
+    buckets.push({label: new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short'}), count});
+  }
+  return buckets;
+}
+function trendChartHtml(dayBuckets){
+  const maxCount = Math.max(1, ...dayBuckets.map(b=>b.count));
+  return `
+  <div class="section-title">${t('tripsPerDay')}</div>
+  <div class="card">
+    <div style="display:flex;align-items:flex-end;gap:5px;height:120px;overflow-x:auto;padding-bottom:4px;">
+      ${dayBuckets.map(b=>`<div style="display:flex;flex-direction:column;align-items:center;gap:6px;min-width:24px;flex:1;">
+        <div class="mono" style="font-size:10px;color:var(--muted);">${b.count||''}</div>
+        <div style="width:100%;max-width:24px;height:${Math.max(4,(b.count/maxCount)*84)}px;background:var(--teal);border-radius:4px 4px 0 0;"></div>
+      </div>`).join('')}
+    </div>
+    <div style="display:flex;gap:5px;margin-top:6px;">
+      ${dayBuckets.map(b=>`<div style="flex:1;min-width:24px;text-align:center;font-size:9px;color:var(--muted);">${b.label}</div>`).join('')}
+    </div>
+  </div>`;
+}
+
+/* ================= RENDER ROOT ================= */
+function render(){
+  const app = document.getElementById('app');
+  if(!S.loaded){ app.innerHTML = '<div class="login-wrap"><div class="mono" style="color:var(--muted)">Loading SnapTrack…</div></div>'; return; }
+  if(S.needsSetup){ app.innerHTML = renderSetup(); attachEnterKey('setupUsername','doSetup'); attachEnterKey('setupPassword','doSetup'); return; }
+  if(!S.user){ app.innerHTML = renderLogin(); attachEnterKey('loginUsername','doLogin'); attachEnterKey('loginPassword','doLogin'); return; }
+
+  let body = '';
+  if(S.view==='trip') body = renderTrip();
+  else if(S.view==='deck') body = renderDesk();
+  else if(S.view==='dashboard') body = renderDashboard();
+  else if(S.view==='vehicles') body = renderVehicleReport();
+  else if(S.view==='analytics') body = renderAnalytics();
+  else if(S.view==='alerts') body = renderAlerts();
+  else if(S.view==='reports') body = renderReports();
+  else if(S.view==='admin') body = renderAdmin();
+  else body = defaultViewFor(S.user.role);
+
+  const navTabs = [];
+  if(S.user.role==='operator'){ navTabs.push({k:'deck', lk:'navDeck'}); }
+  if(S.user.role==='driver'){ navTabs.push({k:'trip', lk:'navTrip'}, {k:'dashboard', lk:'navDashboard'}); }
+  if(S.user.role==='admin' || S.user.role==='manager'){
+    navTabs.push({k:'deck', lk:'navDeck'}, {k:'dashboard', lk:'navDashboard'}, {k:'vehicles', lk:'navVehicles'}, {k:'analytics', lk:'navAnalytics'}, {k:'alerts', lk:'navAlerts'}, {k:'reports', lk:'navReports'});
+  }
+  if(S.user.role==='admin') navTabs.push({k:'admin', lk:'navAdmin'});
+  const tabsHtml = navTabs.map(tb=>`<button class="tab ${S.view===tb.k?'active':''}" onclick="goView('${tb.k}')">${t(tb.lk)}</button>`).join('');
+
+  app.innerHTML = `
+    <div class="topbar">
+      <div class="brand">
+        <div class="mark"><img src="${YB_LOGO}" alt="Yogabar"></div>
+        <div><div class="word">SnapTrack</div><div class="sub">by Yogabar</div></div>
+      </div>
+      <div class="tabs">
+        ${tabsHtml}
+      </div>
+      <div class="userchip">
+        ${langSwitchHtml(true)}
+        <div style="text-align:right;"><div class="name">${escapeHtml(S.user.name)}</div></div>
+        <span class="role">${tLine('role'+S.user.role.charAt(0).toUpperCase()+S.user.role.slice(1))}</span>
+        ${S.user.role==='operator' ? `<span class="locpin">📍 ${escapeHtml(locationName(S.user.locationId))}</span>` : ''}
+        <button class="logout-btn" onclick="logout()">${tLine('logout')}</button>
+      </div>
+    </div>
+    <div class="main">${body}</div>
+    <div class="bottom-nav">
+      ${tabsHtml}
+    </div>
+  `;
+  afterRenderHooks();
+}
+function defaultViewFor(role){
+  if(role==='operator') return renderDesk();
+  if(role==='driver') return renderTrip();
+  return renderDashboard();
+}
+function goView(v){ S.view=v; render(); }
+function logout(){ persistToken(null); AUTH_TOKEN=null; S.user=null; S.view='login'; S.loginError=''; render(); }
+function attachEnterKey(id, fn){ const el=document.getElementById(id); if(el) el.addEventListener('keydown', e=>{ if(e.key==='Enter') window[fn](); }); }
+
+/* ================= FIRST-RUN SETUP ================= */
+function renderSetup(){
+  return `
+  <div class="login-wrap">
+    <div class="login-shell">
+      <div class="login-hero">
+        <div>
+          <div class="hero-mark"><img src="${YB_LOGO}" alt="Yogabar"></div>
+          <h1>${S.lang==='en'?'Welcome to<br>SnapTrack':t('setupHeroTitle')}</h1>
+          <p>${t('setupHeroTagline')}</p>
+        </div>
+        <div>
+          <div class="route-strip"><span class="stop"></span><span class="dash"></span><span class="stop"></span><span class="dash"></span><span class="stop"></span></div>
+          <div class="route-labels"><span>${tLine('routeSource')}</span><span>${tLine('routeTransit')}</span><span>${tLine('routeDestination')}</span></div>
+        </div>
+      </div>
+      <div class="login-side">
+        ${langSwitchHtml(false)}
+        <div class="kicker">${tLine('setupKicker')}</div>
+        <h2>${t('setupHeading')}</h2>
+        ${S.setupError?`<div class="err-msg">${escapeHtml(S.setupError)}</div>`:''}
+        <div class="field"><label>${tLine('nameLabel')}</label><input id="setupName" placeholder="${tLine('namePlaceholder')}"></div>
+        <div class="field"><label>${tLine('usernameLabel')}</label><input id="setupUsername" placeholder="${tLine('setupUsernamePlaceholder')}" autocapitalize="off"></div>
+        <div class="field"><label>${tLine('passwordLabel')}</label><input id="setupPassword" type="password" placeholder="${tLine('setupPasswordPlaceholder')}"></div>
+        <button class="btn btn-primary btn-block" style="padding:13px;font-size:15px;" onclick="doSetup()">${t('setupButton')} →</button>
+        <p class="footnote">${tLine('setupFootnote')}</p>
+      </div>
+    </div>
+  </div>`;
+}
+async function doSetup(){
+  const name = (document.getElementById('setupName').value||'').trim();
+  const username = (document.getElementById('setupUsername').value||'').trim().toLowerCase();
+  const password = document.getElementById('setupPassword').value||'';
+  if(!name || !username || password.length<4){ S.setupError='Fill in your name, a username, and a password of at least 4 characters.'; render(); return; }
+  try{
+    const data = await apiRequest('setup', { method:'POST', auth:false, body:{ name, username, password } });
+    persistToken(data.token); AUTH_TOKEN=data.token;
+    await sSet('last_username', username, false);
+    await boot();
+  }catch(e){
+    S.setupError = e.message || 'Could not create the admin account.';
+    render();
+  }
+}
+
+/* ================= LOGIN ================= */
+function renderLogin(){
+  return `
+  <div class="login-wrap">
+    <div class="login-shell">
+      <div class="login-hero">
+        <div>
+          <div class="hero-mark"><img src="${YB_LOGO}" alt="Yogabar"></div>
+          <h1>SnapTrack</h1>
+          <p>${t('tagline')}</p>
+        </div>
+        <div>
+          <div class="route-strip"><span class="stop"></span><span class="dash"></span><span class="stop"></span><span class="dash"></span><span class="stop"></span></div>
+          <div class="route-labels"><span>${tLine('routeSource')}</span><span>${tLine('routeTransit')}</span><span>${tLine('routeDestination')}</span></div>
+        </div>
+      </div>
+      <div class="login-side">
+        ${langSwitchHtml(false)}
+        <div class="kicker">${tLine('loginKicker')}</div>
+        <h2>${t('loginHeading')}</h2>
+        ${S.loginError?`<div class="err-msg">${escapeHtml(S.loginError)}</div>`:''}
+        <div class="field"><label>${tLine('usernameLabel')}</label><input id="loginUsername" placeholder="${tLine('usernamePlaceholder')}" value="${escapeHtml(S.prefillUsername||'')}" autocapitalize="off"></div>
+        <div class="field"><label>${tLine('passwordLabel')}</label><input id="loginPassword" type="password" placeholder="${tLine('passwordPlaceholder')}"></div>
+        <button class="btn btn-primary btn-block" style="padding:13px;font-size:15px;" onclick="doLogin()">${t('loginButton')} →</button>
+        <p class="footnote">${tLine('loginFootnote')}</p>
+      </div>
+    </div>
+  </div>`;
+}
+async function doLogin(){
+  const username = (document.getElementById('loginUsername').value||'').trim().toLowerCase();
+  const password = document.getElementById('loginPassword').value||'';
+  try{
+    const data = await apiRequest('login', { method:'POST', auth:false, body:{ username, password } });
+    persistToken(data.token); AUTH_TOKEN=data.token;
+    await sSet('last_username', username, false);
+    await boot();
+  }catch(e){
+    S.loginError = e.message || 'Incorrect username or password.';
+    render();
+  }
+}
+function defaultTabFor(role){
+  if(role==='operator') return 'deck';
+  if(role==='driver') return 'trip';
+  return 'dashboard';
+}
+
+/* ================= TRIP (self-service driver) ================= */
+function renderTrip(){
+  const active = S.trips.find(t=>t.status==='in_progress' && t.driverName===S.user.name);
+  if(active) return renderTicket(active);
+
+  const vsel = S.tripDraft.vehicleId, ssel = S.tripDraft.sourceId, dsel = S.tripDraft.destId;
+  const activeLocs = S.locations.filter(l=>l.active!==false);
+  return `
+  <div class="step-select">
+    <div>
+      <div class="section-title">${tLine('step1')} <span class="tag">${tLine('selectVehicle')}</span></div>
+      <div class="veh-grid">
+        ${S.vehicles.filter(v=>v.active!==false).map(v=>{
+          const busy = activeTripForVehicle(v.id);
+          return `<button class="veh-pick ${vsel===v.id?'sel':''}" ${busy?'disabled title="Already on a trip"':''} onclick="pickVehicle('${v.id}')">${v.number}${busy?'<div style="font-size:10px;font-weight:600;margin-top:4px;color:var(--amber)">'+tLine('onTrip')+'</div>':''}</button>`;
+        }).join('')}
+      </div>
+    </div>
+    <div>
+      <div class="section-title">${tLine('step2')} <span class="tag">${tLine('fromLocation')}</span></div>
+      <div class="veh-grid">
+        ${activeLocs.map(l=>`<button class="veh-pick ${ssel===l.id?'sel':''}" onclick="pickSource('${l.id}')" style="font-family:'Inter';font-weight:600;">${l.name}</button>`).join('')}
+      </div>
+    </div>
+    <div>
+      <div class="section-title">${tLine('step3')} <span class="tag">${tLine('toLocation')}</span></div>
+      <div class="veh-grid">
+        ${activeLocs.filter(l=>l.id!==ssel).map(l=>`<button class="veh-pick ${dsel===l.id?'sel':''}" onclick="pickDest('${l.id}')" style="font-family:'Inter';font-weight:600;">${l.name}</button>`).join('') || `<div class="footnote">${tLine('pickFromFirst')}</div>`}
+      </div>
+    </div>
+    <button class="btn btn-huge btn-primary" ${(!vsel||!ssel||!dsel)?'disabled':''} onclick="startTrip()">${t('startTrip')} →</button>
+  </div>`;
+}
+function pickVehicle(id){ S.tripDraft.vehicleId=id; render(); }
+function pickSource(id){ S.tripDraft.sourceId=id; if(S.tripDraft.destId===id) S.tripDraft.destId=null; render(); }
+function pickDest(id){ S.tripDraft.destId=id; render(); }
+async function startTrip(){
+  const {vehicleId, sourceId, destId} = S.tripDraft;
+  if(!vehicleId || !sourceId || !destId) return;
+  if(activeTripForVehicle(vehicleId)){ alert('This vehicle already has an active trip.'); return; }
+  const trip = {
+    id: uid('trip'), vehicleId, vehicleNumber: vehicleNumber(vehicleId), driverName: S.user.name, createdBy:S.user.username,
+    sourceId, destId, sourceName: locationName(sourceId), destName: locationName(destId),
+    status:'in_progress', createdAt: Date.now(),
+    ts: {reachedSource:null,loadingStart:null,loadingEnd:null,departed:null,reachedDestination:null,unloadingStart:null,unloadingEnd:null}
+  };
+  try{
+    await createTripPersisted(trip);
+  }catch(e){
+    if(e.message==='VEHICLE_BUSY'){ alert('This vehicle was just started on another trip by someone else — pick a different vehicle.'); render(); return; }
+    throw e;
+  }
+  S.tripDraft = {vehicleId:null, sourceId:null, destId:null};
+  render();
+}
+function newTrip(){ S.tripDraft = {vehicleId:null, sourceId:null, destId:null}; render(); }
+
+function renderTicket(trip){
+  const key = nextStepKey(trip);
+  const movLabel = trip.sourceName + ' → ' + trip.destName;
+  const gateLocId = key==='reachedDestination' ? trip.destId : null;
+  const gateLocName = gateLocId ? locationName(gateLocId) : null;
+
+  if(!key){
+    const m = tripMetrics(trip);
+    return `
+    <div class="ticket">
+      <div class="ticket-head"><div><div class="veh">${trip.vehicleNumber}</div><div class="mv">${movLabel}</div></div><span class="badge green">${tLine('completedWord')}</span></div>
+      <div class="perf"></div>
+      <div class="ticket-body">
+        <div class="done-banner">
+          <div class="big">✅</div><h3>${t('tripClosed')}</h3>
+          <p>${tLine('turnaroundTime')}: <b class="mono">${fmtDur(m.turnaround)}</b></p>
+          <div class="grid grid-3" style="text-align:left;margin-bottom:18px;">
+            <div class="card" style="padding:12px;"><div style="font-size:10.5px;color:var(--muted);font-weight:700;">${tLine('loadingWord').toUpperCase()}</div><div class="mono" style="font-weight:700;">${fmtDur(m.loadingTime)}</div></div>
+            <div class="card" style="padding:12px;"><div style="font-size:10.5px;color:var(--muted);font-weight:700;">${tLine('travelWord').toUpperCase()}</div><div class="mono" style="font-weight:700;">${fmtDur(m.travelTime)}</div></div>
+            <div class="card" style="padding:12px;"><div style="font-size:10.5px;color:var(--muted);font-weight:700;">${tLine('unloadingWord').toUpperCase()}</div><div class="mono" style="font-weight:700;">${fmtDur(m.unloadingTime)}</div></div>
+          </div>
+          <button class="btn btn-primary btn-block" onclick="newTrip()">${t('startNextTrip')} →</button>
+        </div>
+      </div>
+    </div>`;
+  }
+  const stepsHtml = STEP_KEYS.map(k=>{
+    const done = !!trip.ts[k]; const isNow = k===key;
+    return `<li><div class="dot ${done?'done':(isNow?'now':'')}">${done?'✓':(STEP_KEYS.indexOf(k)+1)}</div>
+      <div class="step-label">${t(STEP_LABEL_KEY[k])}</div><div class="step-time mono">${done?fmtTime(trip.ts[k]):(isNow?tLine('inProgress'):'')}</div></li>`;
+  }).join('');
+  return `
+  <div class="ticket">
+    <div class="ticket-head"><div><div class="veh">${trip.vehicleNumber}</div><div class="mv">${movLabel} · ${escapeHtml(trip.driverName)}</div></div><span class="badge amber">${tLine('inProgress')}</span></div>
+    <div class="perf"></div>
+    <div class="ticket-body">
+      <ul class="stepper">${stepsHtml}</ul>
+      <button class="btn btn-huge btn-primary" onclick="advanceTrip('${trip.id}')">${t(STEP_LABEL_KEY[key])}</button>
+      ${gateLocId ? `<div class="qr-alt"><button onclick="openScan('${trip.id}','${gateLocId}')">${tLine('scanInstead',{loc:gateLocName})}</button></div>` : ''}
+      <div class="footnote" style="text-align:center;margin-top:14px;">${tLine('tapInstruction')}</div>
+    </div>
+  </div>`;
+}
+async function advanceTrip(id){
+  const trip = S.trips.find(t=>t.id===id); if(!trip) return;
+  const key = nextStepKey(trip); if(!key) return;
+  const reqLoc = stepLocationFor(trip, key);
+  if(S.user.role==='operator' && reqLoc !== S.user.locationId){
+    alert('This step happens at '+locationName(reqLoc)+' — it can only be logged from that location\'s Trip Desk.');
+    return;
+  }
+  if(S.user.role==='driver' && trip.driverName !== S.user.name){
+    alert('This is not your trip.'); return;
+  }
+  try{
+    const updated = await apiRequest(`trips/${id}/advance`, { method:'POST', auth:true });
+    const tripIndex = S.trips.findIndex(t=>t.id===id);
+    if(tripIndex >= 0) S.trips[tripIndex] = { ...S.trips[tripIndex], ...updated.trip, ts: updated.trip.ts || S.trips[tripIndex].ts, delays: updated.trip.delays || S.trips[tripIndex].delays || {} };
+    const segment = DELAY_CHECK_STEP[key];
+    if(segment && updated.delayNeeded){
+      render();
+      openDelayModal(id, segment);
+      return;
+    }
+    render();
+  }catch(e){
+    alert(e.message || 'Could not advance the trip.');
+  }
+}
+function isSegmentDelayed(trip, segment){
+  const m = tripMetrics(trip); const st = S.settings;
+  if(segment==='loading') return m.loadingTime!=null && m.loadingTime > st.expectedLoading*60000;
+  if(segment==='travel') return m.travelTime!=null && m.travelTime > st.expectedTravel*60000;
+  if(segment==='unloading') return m.unloadingTime!=null && m.unloadingTime > st.expectedUnloading*60000;
+  return false;
+}
+function segmentLabelKey(segment){ return {loading:'loadingWord', travel:'travelWord', unloading:'unloadingWord'}[segment]; }
+function openDelayModal(tripId, segment){
+  S.delayModal = {tripId, segment, reasonId:'', remarks:''};
+  const modal = document.createElement('div');
+  modal.className='modal-bg'; modal.id='delayModal';
+  document.body.appendChild(modal);
+  renderDelayModal();
+}
+function renderDelayModal(){
+  const el = document.getElementById('delayModal'); if(!el || !S.delayModal) return;
+  const dm = S.delayModal;
+  const activeReasons = S.delayReasons.filter(r=>r.active!==false);
+  el.innerHTML = `<div class="modal">
+    <h3 style="margin-top:0;">${t('delayModalTitle')}</h3>
+    <p class="footnote" style="margin-top:-6px;">${tLine('delayRequiredNote')} <b>(${tLine(segmentLabelKey(dm.segment))})</b></p>
+    <div class="field"><label>${tLine('delayReasonLabel')}</label>
+      <select id="dm_reason" onchange="S.delayModal.reasonId=this.value">
+        <option value="">${tLine('delayReasonPlaceholder')}</option>
+        ${activeReasons.map(r=>`<option value="${r.id}" ${dm.reasonId===r.id?'selected':''}>${escapeHtml(r.label)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="field"><label>${tLine('delayRemarksLabel')}</label>
+      <textarea id="dm_remarks" rows="3" placeholder="${tLine('delayRemarksPlaceholder')}" style="width:100%;padding:11px 13px;border-radius:9px;border:1.5px solid var(--line);font-size:14px;font-family:inherit;resize:vertical;" oninput="S.delayModal.remarks=this.value">${escapeHtml(dm.remarks)}</textarea>
+    </div>
+    <button class="btn btn-primary btn-block" id="dm_save" onclick="saveDelayReason()" ${dm.reasonId?'':'disabled'}>${t('delaySaveButton')}</button>
+  </div>`;
+  const sel = document.getElementById('dm_reason');
+  if(sel) sel.addEventListener('change', ()=>{ document.getElementById('dm_save').disabled = !S.delayModal.reasonId; });
+}
+async function saveDelayReason(){
+  const dm = S.delayModal; if(!dm || !dm.reasonId) return;
+  const local = S.trips.find(t=>t.id===dm.tripId); if(!local){ closeDelayModal(); return; }
+  const reason = S.delayReasons.find(r=>r.id===dm.reasonId);
+  try{
+    await apiRequest(`trips/${dm.tripId}/delay`, { method:'POST', auth:true, body:{ segment: dm.segment, reasonId: dm.reasonId, remarks: dm.remarks || '' } });
+    const tripIndex = S.trips.findIndex(t=>t.id===dm.tripId);
+    if(tripIndex >= 0){
+      const freshDelays = { ...(S.trips[tripIndex].delays || {}) };
+      freshDelays[dm.segment] = { reasonId:dm.reasonId, reasonLabel: reason?reason.label:'', remarks:(dm.remarks||'').trim(), capturedAt: Date.now() };
+      S.trips[tripIndex] = { ...S.trips[tripIndex], delays: freshDelays };
+    }
+  }catch(e){
+    alert(e.message || 'Could not save the delay reason.');
+  }
+  closeDelayModal();
+  render();
+}
+function closeDelayModal(){
+  S.delayModal = null;
+  const m = document.getElementById('delayModal'); if(m) m.remove();
+}
+
+/* ---- QR gate scan ----
+   The QR only identifies the LOCATION, never the vehicle — the vehicle/trip is already
+   known from who's logged in (a driver's own open trip, or the Trip Desk queue at that
+   location), so scanning just confirms "this trip has reached this place" and stamps
+   the next timestamp. One static poster per location works for every vehicle. */
+async function openScan(tripId, locId){
+  const locName = locationName(locId);
+  const modal = document.createElement('div');
+  modal.className='modal-bg'; modal.id='scanModal';
+  modal.innerHTML = `<div class="modal">
+    <button class="close-x" onclick="closeScan()">✕</button>
+    <h3 style="margin-top:0;">Scan ${escapeHtml(locName)} QR</h3>
+    <div class="qr-box">
+      <video id="scanvid" autoplay playsinline muted></video>
+      <canvas id="scancanvas" style="display:none;"></canvas>
+      <div id="scanStatus" class="footnote">Point the camera at the gate QR code…</div>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    const video = document.getElementById('scanvid'); video.srcObject = stream;
+    S.scanCtx = {stream};
+    const canvas = document.getElementById('scancanvas'); const ctx = canvas.getContext('2d');
+    const expected = gateToken(locId);
+    const tick = ()=>{
+      if(!document.getElementById('scanModal')) return;
+      if(video.readyState===video.HAVE_ENOUGH_DATA){
+        canvas.width=video.videoWidth; canvas.height=video.videoHeight;
+        ctx.drawImage(video,0,0,canvas.width,canvas.height);
+        const img = ctx.getImageData(0,0,canvas.width,canvas.height);
+        const code = jsQR(img.data, img.width, img.height);
+        if(code && code.data){
+          if(code.data.trim()===expected){
+            document.getElementById('scanStatus').textContent = '✓ Gate verified — saving timestamp…';
+            closeScan(); advanceTrip(tripId); return;
+          } else { document.getElementById('scanStatus').textContent = 'QR does not match this gate — try again.'; }
+        }
+      }
+      S.scanCtx.timer = requestAnimationFrame(tick);
+    };
+    S.scanCtx.timer = requestAnimationFrame(tick);
+  }catch(e){ document.getElementById('scanStatus').textContent = 'Camera unavailable ('+e.message+'). Use the button instead.'; }
+}
+function closeScan(){
+  if(S.scanCtx){ if(S.scanCtx.timer) cancelAnimationFrame(S.scanCtx.timer); if(S.scanCtx.stream) S.scanCtx.stream.getTracks().forEach(t=>t.stop()); S.scanCtx=null; }
+  const m = document.getElementById('scanModal'); if(m) m.remove();
+}
+
+/* ================= TRIP DESK (operator / admin / manager) ================= */
+function renderDesk(){
+  const canSwitch = S.user.role==='admin' || S.user.role==='manager';
+  const locId = S.user.role==='operator' ? S.user.locationId : (S.deskLocationId || (S.locations[0] && S.locations[0].id));
+  if(!locId) return `<div class="empty"><div class="big">📍</div>No locations configured yet. Ask an Admin to add one.</div>`;
+
+  const departing = S.trips.filter(t=>t.status==='in_progress' && t.sourceId===locId && SOURCE_STEPS.includes(nextStepKey(t)));
+  const arriving = S.trips.filter(t=>t.status==='in_progress' && t.destId===locId && DEST_STEPS.includes(nextStepKey(t)));
+  const recentDone = S.trips.filter(t=>t.status==='completed' && isToday(t.completedAt) && (t.sourceId===locId||t.destId===locId))
+    .sort((a,b)=>b.completedAt-a.completedAt).slice(0,5);
+
+  const busyVehicleIds = new Set(S.trips.filter(t=>t.status==='in_progress').map(t=>t.vehicleId));
+  const availableVehicles = S.vehicles.filter(v=>v.active!==false && !busyVehicleIds.has(v.id));
+  const otherLocs = S.locations.filter(l=>l.active!==false && l.id!==locId);
+
+  const dd = S.deskDraft;
+
+  return `
+  <div class="desk-head">
+    <div class="desk-loc"><span class="pin"></span>${escapeHtml(locationName(locId))}</div>
+    ${canSwitch ? `<div class="loc-switch"><select onchange="switchDeskLoc(this.value)">
+      ${S.locations.map(l=>`<option value="${l.id}" ${l.id===locId?'selected':''}>${escapeHtml(l.name)}</option>`).join('')}
+    </select></div>` : ''}
+  </div>
+
+  <div class="section-title">${t('deskLogNewArrival')} <span class="tag">${tLine('deskAtThisGate')}</span></div>
+  <div class="card new-arrival-card">
+    <div class="form-row">
+      <div class="field"><label>${tLine('deskVehicleLabel')}</label>
+        <select id="dd_vehicle" onchange="deskSetVehicle(this.value)">
+          <option value="">${tLine('deskSelectVehicle')}</option>
+          ${availableVehicles.map(v=>`<option value="${v.id}" ${dd.vehicleId===v.id?'selected':''}>${v.number}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field"><label>${tLine('deskGoingTo')}</label>
+        <select id="dd_dest" onchange="deskSetDest(this.value)">
+          <option value="">${tLine('deskSelectDestination')}</option>
+          ${otherLocs.map(l=>`<option value="${l.id}" ${dd.destId===l.id?'selected':''}>${escapeHtml(l.name)}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>${tLine('deskDriverName')}</label>
+      <input id="dd_driver" placeholder="${tLine('deskDriverPlaceholder')}" value="${escapeHtml(dd.driverName)}" oninput="S.deskDraft.driverName=this.value">
+    </div>
+    <button class="btn btn-huge btn-primary" ${(!dd.vehicleId||!dd.destId)?'disabled':''} onclick="logArrival('${locId}')">${t('deskLogArrival')} →</button>
+    ${!availableVehicles.length ? `<div class="footnote">${tLine('deskAllBusy')}</div>`:''}
+  </div>
+
+  <div class="section-title">${t('deskDepartingFromHere')} <span class="count">${departing.length}</span></div>
+  ${departing.length ? departing.map(tr=>deskQueueCard(tr)).join('') : `<div class="empty" style="padding:24px;">${tLine('deskNothingDeparting')}</div>`}
+
+  <div class="section-title">${t('deskArrivingHere')} <span class="count">${arriving.length}</span></div>
+  ${arriving.length ? arriving.map(tr=>deskQueueCard(tr)).join('') : `<div class="empty" style="padding:24px;">${tLine('deskNothingArriving')}</div>`}
+
+  ${recentDone.length ? `
+  <div class="section-title">${t('deskCompletedToday')} <span class="count">${recentDone.length}</span></div>
+  <div class="table-wrap"><table><thead><tr><th>${tLine('thVehicle')}</th><th>${tLine('thRoute')}</th><th>${tLine('thDriver')}</th><th>${tLine('thClosed')}</th></tr></thead>
+  <tbody>${recentDone.map(tr=>`<tr><td class="mono">${tr.vehicleNumber}</td><td>${escapeHtml(tr.sourceName)} → ${escapeHtml(tr.destName)}</td><td>${escapeHtml(tr.driverName)}</td><td class="mono">${fmtTime(tr.completedAt)}</td></tr>`).join('')}</tbody></table></div>
+  ` : ''}
+  `;
+}
+function switchDeskLoc(id){ S.deskLocationId=id; render(); }
+function deskSetVehicle(id){ S.deskDraft.vehicleId=id||null; render(); }
+function deskSetDest(id){ S.deskDraft.destId=id||null; render(); }
+async function logArrival(sourceId){
+  const {vehicleId, destId, driverName} = S.deskDraft;
+  if(!vehicleId || !destId) return;
+  if(activeTripForVehicle(vehicleId)){ alert('This vehicle already has an active trip.'); S.deskDraft={vehicleId:null,destId:null,driverName:''}; render(); return; }
+  const trip = {
+    id: uid('trip'), vehicleId, vehicleNumber: vehicleNumber(vehicleId),
+    driverName: (driverName||'').trim() || '(not recorded)', createdBy: S.user.username,
+    sourceId, destId, sourceName: locationName(sourceId), destName: locationName(destId),
+    status:'in_progress', createdAt: Date.now(),
+    ts: {reachedSource:Date.now(),loadingStart:null,loadingEnd:null,departed:null,reachedDestination:null,unloadingStart:null,unloadingEnd:null}
+  };
+  try{
+    await createTripPersisted(trip);
+  }catch(e){
+    S.deskDraft = {vehicleId:null, destId:null, driverName:''};
+    if(e.message==='VEHICLE_BUSY'){ alert('This vehicle was just started on another trip by someone else — pick a different vehicle.'); render(); return; }
+    throw e;
+  }
+  S.deskDraft = {vehicleId:null, destId:null, driverName:''};
+  render();
+}
+function deskQueueCard(trip){
+  const key = nextStepKey(trip);
+  const doneCount = STEP_KEYS.filter(k=>trip.ts[k]).length;
+  return `
+  <div class="queue-card">
+    <div class="queue-top">
+      <span class="queue-veh">${trip.vehicleNumber}</span>
+      <span class="badge amber">${tLine(STEP_LABEL_KEY[key])}</span>
+    </div>
+    <div class="queue-meta">${escapeHtml(trip.sourceName)} → ${escapeHtml(trip.destName)} · ${escapeHtml(trip.driverName)} · ${tLine('stepOf',{n:doneCount+1})}</div>
+    <div style="margin-top:10px;">
+      <button class="queue-btn" onclick="advanceTrip('${trip.id}')">${t(STEP_LABEL_KEY[key])}</button>
+      ${key==='reachedDestination' ? `<div class="qr-alt"><button onclick="openScan('${trip.id}','${trip.destId}')">${tLine('scanInstead',{loc:locationName(trip.destId)})}</button></div>` : ''}
+    </div>
+  </div>`;
+}
+
+/* ================= DASHBOARD ================= */
+function renderDashboard(){
+  const fs = S.dashFilter;
+  const isLive = fs.preset==='today' && fs.vehicleId==='all';
+  const {start,end} = presetRangeMs(fs);
+  const days = daysInRange(fs);
+  const rangeAll = tripsInRange(fs);
+  const completedRange = rangeAll.filter(t=>t.status==='completed');
+  const avg = (arr)=> arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null;
+  const loadTimes = completedRange.map(t=>tripMetrics(t).loadingTime).filter(x=>x!=null);
+  const travelTimes = completedRange.map(t=>tripMetrics(t).travelTime).filter(x=>x!=null);
+  const unloadTimes = completedRange.map(t=>tripMetrics(t).unloadingTime).filter(x=>x!=null);
+  const turns = completedRange.map(t=>tripMetrics(t).turnaround).filter(x=>x!=null);
+  const runningMs = rangeAll.reduce((sum,t)=>sum+(tripMetrics(t).running||0),0);
+  const vehCountForUtil = fs.vehicleId==='all' ? S.vehicles.filter(v=>v.active!==false).length : 1;
+  const workdayMs = S.settings.workdayHours*3600000*vehCountForUtil*days;
+  const utilization = workdayMs>0 ? Math.min(100, (runningMs/workdayMs*100)) : 0;
+  const longestDelay = completedRange.reduce((max,t)=>{ const m=tripMetrics(t); return Math.max(max, m.totalWait||0); },0);
+  const fastest = turns.length ? Math.min(...turns) : null;
+  const activeCount = rangeAll.length - completedRange.length;
+
+  return `
+  <div class="section-title">${t('dashToday')} ${isLive?`<span class="tag" style="background:var(--green-light);color:var(--green);">● LIVE</span>`:''}
+    <span class="tag">${isLive ? new Date().toLocaleDateString('en-IN',{weekday:'long', day:'2-digit', month:'short'}) : new Date(start).toLocaleDateString('en-IN',{day:'2-digit',month:'short'})+' – '+new Date(end).toLocaleDateString('en-IN',{day:'2-digit',month:'short'})}</span>
+  </div>
+  ${rangeBarHtml('dashFilter', true)}
+  <div class="grid grid-4">
+    ${statCard(t('statTotalTrips'), completedRange.length + (isLive && activeCount ? ' <span class="unit">('+activeCount+')</span>' : ''), '')}
+    ${statCard(t('statAvgLoading'), fmtDur(avg(loadTimes)), '')}
+    ${statCard(t('statAvgTravel'), fmtDur(avg(travelTimes)), '')}
+    ${statCard(t('statAvgUnloading'), fmtDur(avg(unloadTimes)), '')}
+  </div>
+  <div class="grid grid-3" style="margin-top:16px;">
+    ${statCard(t('statUtilization'), utilization.toFixed(0)+'%', '', true)}
+    ${statCard(t('statLongestDelay'), fmtDur(longestDelay), '', true)}
+    ${statCard(t('statFastestTrip'), fmtDur(fastest), '', true)}
+  </div>
+  ${isLive ? `
+  <div class="section-title">${t('liveFleetStatus')}</div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>${tLine('thVehicle')}</th><th>${tLine('thDriver')}</th><th>${tLine('thRoute')}</th><th>${tLine('thStage')}</th><th>${tLine('thSince')}</th></tr></thead>
+      <tbody>
+        ${S.vehicles.filter(v=>v.active!==false).map(v=>{
+          const tr = activeTripForVehicle(v.id);
+          if(!tr) return `<tr><td class="mono">${v.number}</td><td colspan="4" style="color:var(--muted)">${tLine('idleWord')}${vehicleIdleMs(v.id)!=null?' · '+fmtDur(vehicleIdleMs(v.id)):''}</td></tr>`;
+          const key = nextStepKey(tr);
+          const lastDoneKey = STEP_KEYS[STEP_KEYS.indexOf(key)-1];
+          return `<tr><td class="mono">${v.number}</td><td>${escapeHtml(tr.driverName)}</td><td>${escapeHtml(tr.sourceName)} → ${escapeHtml(tr.destName)}</td>
+            <td><span class="badge amber">${key ? tLine('awaitingWord')+': '+tLine(STEP_LABEL_KEY[key]) : tLine('wrappingUp')}</span></td>
+            <td class="mono">${lastDoneKey ? fmtTime(tr.ts[lastDoneKey]) : fmtTime(tr.createdAt)}</td></tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>` : trendChartHtml(dayBucketsFor(rangeAll, start, end))}`;
+}
+function statCard(label, value, unit, alt){
+  return `<div class="card stat-card ${alt?'alt':''}"><div class="bar"></div><div class="label">${label}</div><div class="value">${value}${unit?` <span class="unit">${unit}</span>`:''}</div></div>`;
+}
+
+/* ================= VEHICLE REPORT ================= */
+function renderVehicleReport(){
+  const fs = S.vehFilter;
+  const days = daysInRange(fs);
+  const avg=(arr)=>arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:null;
+
+  if(fs.vehicleId==='all'){
+    const rangeTrips = tripsInRange(fs);
+    const rows = S.vehicles.map(v=>{
+      const vt = rangeTrips.filter(t=>t.vehicleId===v.id);
+      const vtCompleted = vt.filter(t=>t.status==='completed');
+      const loadT = vtCompleted.map(t=>tripMetrics(t).loadingTime).filter(x=>x!=null);
+      const travT = vtCompleted.map(t=>tripMetrics(t).travelTime).filter(x=>x!=null);
+      const unlT = vtCompleted.map(t=>tripMetrics(t).unloadingTime).filter(x=>x!=null);
+      const running = vt.reduce((s,t)=>s+(tripMetrics(t).running||0),0);
+      const workdayMs = S.settings.workdayHours*3600000*days;
+      const idle = Math.max(0, workdayMs-running);
+      const eff = workdayMs>0 ? Math.min(100, running/workdayMs*100) : 0;
+      return {v, trips:vt.length, avgLoad:avg(loadT), avgTrav:avg(travT), avgUnl:avg(unlT), idle, running, eff};
+    });
+    return `
+    <div class="section-title">${t('vehReportTitle')}</div>
+    ${rangeBarHtml('vehFilter', true)}
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>${tLine('thVehicle')}</th><th>${tLine('thTripsToday')}</th><th>${tLine('thAvgLoading')}</th><th>${tLine('thAvgTravel')}</th><th>${tLine('thAvgUnloading')}</th><th>${tLine('thIdleTime')}</th><th>${tLine('thTotalRunning')}</th><th>${tLine('thEfficiency')}</th></tr></thead>
+        <tbody>
+          ${rows.map(r=>`<tr>
+            <td class="mono">${r.v.number}${r.v.active===false?' <span class="badge gray">inactive</span>':''}</td>
+            <td>${r.trips}</td><td class="mono">${fmtDur(r.avgLoad)}</td><td class="mono">${fmtDur(r.avgTrav)}</td><td class="mono">${fmtDur(r.avgUnl)}</td>
+            <td class="mono ${r.idle && r.idle>7200000?'kpi-flag':''}">${fmtDur(r.idle)}</td>
+            <td class="mono">${fmtDur(r.running)}</td>
+            <td><span class="badge ${r.eff>=70?'green':r.eff>=40?'amber':'red'}">${r.eff.toFixed(0)}%</span></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    <p class="footnote">${tLine('effFootnote')}</p>`;
+  }
+
+  // ---- specific vehicle drill-down ----
+  const v = S.vehicles.find(v=>v.id===fs.vehicleId);
+  const vt = tripsInRange(fs).sort((a,b)=>b.createdAt-a.createdAt);
+  const vtCompleted = vt.filter(t=>t.status==='completed');
+  const loadT = vtCompleted.map(t=>tripMetrics(t).loadingTime).filter(x=>x!=null);
+  const travT = vtCompleted.map(t=>tripMetrics(t).travelTime).filter(x=>x!=null);
+  const unlT = vtCompleted.map(t=>tripMetrics(t).unloadingTime).filter(x=>x!=null);
+  const turnT = vtCompleted.map(t=>tripMetrics(t).turnaround).filter(x=>x!=null);
+  const running = vt.reduce((s,t)=>s+(tripMetrics(t).running||0),0);
+  const workdayMs = S.settings.workdayHours*3600000*days;
+  const eff = workdayMs>0 ? Math.min(100, running/workdayMs*100) : 0;
+
+  return `
+  <div class="section-title">${t('vehReportTitle')} <span class="tag">${escapeHtml(v?v.number:'')}</span></div>
+  ${rangeBarHtml('vehFilter', true)}
+  <div class="grid grid-4">
+    ${statCard(t('statTotalTrips'), vt.length, '')}
+    ${statCard(t('statAvgLoading'), fmtDur(avg(loadT)), '')}
+    ${statCard(t('statAvgTravel'), fmtDur(avg(travT)), '')}
+    ${statCard(t('statAvgUnloading'), fmtDur(avg(unlT)), '')}
+  </div>
+  <div class="grid grid-3" style="margin-top:16px;">
+    ${statCard(tLine('thTotalRunning'), fmtDur(running), '', true)}
+    ${statCard(tLine('thAvgTurnaround'), fmtDur(avg(turnT)), '', true)}
+    ${statCard(tLine('thEfficiency'), eff.toFixed(0)+'%', '', true)}
+  </div>
+  <div class="section-title">${tLine('reportsTitle')}</div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>${tLine('thDate')}</th><th>${tLine('thRoute')}</th><th>${tLine('thDriver')}</th><th>${tLine('loadingWord')}</th><th>${tLine('travelWord')}</th><th>${tLine('unloadingWord')}</th><th>${tLine('turnaroundTime')}</th><th>${tLine('thStatus')}</th><th>${tLine('thReason')}</th></tr></thead>
+      <tbody>
+        ${vt.map(tr=>{
+          const m = tripMetrics(tr);
+          const reasons = tr.delays ? Object.values(tr.delays).map(d=>d.reasonLabel).filter(Boolean) : [];
+          return `<tr>
+            <td class="mono">${fmtDate(tr.createdAt)}</td>
+            <td>${escapeHtml(tr.sourceName)} → ${escapeHtml(tr.destName)}</td>
+            <td>${escapeHtml(tr.driverName)}</td>
+            <td class="mono">${fmtDur(m.loadingTime)}</td><td class="mono">${fmtDur(m.travelTime)}</td><td class="mono">${fmtDur(m.unloadingTime)}</td>
+            <td class="mono">${fmtDur(m.turnaround)}</td>
+            <td><span class="badge ${tr.status==='completed'?'green':'amber'}">${tr.status==='completed'?tLine('completedWord'):tLine('inProgress')}</span></td>
+            <td>${reasons.length? reasons.map(r=>`<span class="badge red" style="margin-right:4px;">${escapeHtml(r)}</span>`).join('') : '—'}</td>
+          </tr>`;
+        }).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:30px;">${tLine('noTripsInRange')}</td></tr>`}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+/* ================= ANALYTICS ================= */
+function renderAnalytics(){
+  const fs = S.analyticsFilter;
+  const {start, end} = presetRangeMs(fs);
+  const rangeAll = tripsInRange(fs);
+  const completed = rangeAll.filter(t=>t.status==='completed');
+  const avg=(arr)=>arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:null;
+  const locRows = S.locations.map(l=>{
+    const asSource = completed.filter(t=>t.sourceId===l.id).map(t=>tripMetrics(t).loadingTime).filter(x=>x!=null);
+    const asDest = completed.filter(t=>t.destId===l.id).map(t=>tripMetrics(t).unloadingTime).filter(x=>x!=null);
+    return {name:l.name, avgLoading:avg(asSource), loadTrips:asSource.length, avgUnloading:avg(asDest), unlTrips:asDest.length};
+  });
+  let loadSum=0, travSum=0, waitSum=0, unlSum=0;
+  completed.forEach(t=>{ const m=tripMetrics(t); loadSum+=m.loadingTime||0; travSum+=m.travelTime||0; waitSum+=m.totalWait||0; unlSum+=m.unloadingTime||0; });
+  const total = loadSum+travSum+waitSum+unlSum || 1;
+  const segs = [ {lk:'loadingWord', v:loadSum, c:'#F0603E'}, {lk:'travelWord', v:travSum, c:'#256F66'}, {lk:'waitingWord', v:waitSum, c:'#F0AA3D'}, {lk:'unloadingWord', v:unlSum, c:'#3C9E74'} ];
+  let acc=0; const gradientParts = segs.map(s=>{ const start=acc/total*360; acc+=s.v; const end=acc/total*360; return `${s.c} ${start}deg ${end}deg`; }).join(', ');
+  const totalWaitAll = rangeAll.reduce((s,t)=>s+(tripMetrics(t).totalWait||0),0);
+
+  // trend: trips per calendar day across the range
+  const dayBuckets = dayBucketsFor(rangeAll, start, end);
+
+  // delay reason breakdown
+  const reasonCounts = {};
+  rangeAll.forEach(t=>{
+    if(!t.delays) return;
+    Object.values(t.delays).forEach(d=>{
+      reasonCounts[d.reasonLabel] = (reasonCounts[d.reasonLabel]||0) + 1;
+    });
+  });
+  const reasonRows = Object.entries(reasonCounts).sort((a,b)=>b[1]-a[1]);
+  const maxReason = Math.max(1, ...reasonRows.map(r=>r[1]));
+
+  // top routes
+  const routeMap = {};
+  completed.forEach(t=>{
+    const key = t.sourceName+' → '+t.destName;
+    if(!routeMap[key]) routeMap[key] = {label:key, count:0, turns:[]};
+    routeMap[key].count++;
+    const m = tripMetrics(t); if(m.turnaround!=null) routeMap[key].turns.push(m.turnaround);
+  });
+  const topRoutes = Object.values(routeMap).sort((a,b)=>b.count-a.count).slice(0,5);
+
+  return `
+  <div class="section-title">${t('analyticsTitle')}</div>
+  ${rangeBarHtml('analyticsFilter', true)}
+  <div class="grid grid-2">
+    ${statCard(t('statTripsCompleted'), completed.length,'', true)}
+    ${statCard(t('statTimeWaiting'), fmtDur(totalWaitAll),'', true)}
+  </div>
+
+  ${trendChartHtml(dayBuckets)}
+
+  <div class="section-title">${t('avgByLocation')}</div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>${tLine('thLocation')}</th><th>${tLine('thAvgLoadSrc')}</th><th>${tLine('thAvgUnlDest')}</th></tr></thead>
+      <tbody>${locRows.map(r=>`<tr><td>${escapeHtml(r.name)}</td>
+        <td class="mono">${r.loadTrips? fmtDur(r.avgLoading)+' ('+r.loadTrips+')' : '—'}</td>
+        <td class="mono">${r.unlTrips? fmtDur(r.avgUnloading)+' ('+r.unlTrips+')' : '—'}</td></tr>`).join('')}</tbody>
+    </table>
+  </div>
+
+  ${topRoutes.length ? `
+  <div class="section-title">${t('topRoutes')}</div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>${tLine('thRoute')}</th><th>${tLine('thTrips')}</th><th>${tLine('thAvgTurnaround')}</th></tr></thead>
+      <tbody>${topRoutes.map(r=>`<tr><td>${escapeHtml(r.label)}</td><td>${r.count}</td><td class="mono">${fmtDur(avg(r.turns))}</td></tr>`).join('')}</tbody>
+    </table>
+  </div>` : ''}
+
+  <div class="section-title">${t('delayReasonsBreakdown')}</div>
+  ${reasonRows.length ? `
+  <div class="card">
+    ${reasonRows.map(([label,count])=>`<div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:600;margin-bottom:4px;"><span>${escapeHtml(label)}</span><span class="mono">${count}</span></div>
+      <div style="background:var(--line);border-radius:6px;height:8px;overflow:hidden;"><div style="width:${(count/maxReason*100)}%;height:100%;background:var(--red);"></div></div>
+    </div>`).join('')}
+  </div>` : `<div class="empty" style="padding:24px;">${tLine('noDelaysInRange')}</div>`}
+
+  <div class="section-title">${t('timeBreakdown')}</div>
+  <div class="card">
+    <div class="pie-wrap">
+      <div class="pie" style="background:conic-gradient(${total>4?gradientParts:'#eee 0 360deg'});"></div>
+      <div class="legend">${segs.map(s=>`<div class="row"><span class="sw" style="background:${s.c}"></span>${tLine(s.lk)} <b>${total>4?((s.v/total*100).toFixed(0)+'%'):'—'}</b></div>`).join('')}</div>
+    </div>
+  </div>`;
+}
+
+/* ================= ALERTS ================= */
+function renderAlerts(){
+  const today = S.trips.filter(t=>isToday(t.createdAt));
+  const tripAlerts = [];
+  today.forEach(t=>{ const flags = tripFlags(t); if(flags.length) tripAlerts.push({t, flags}); });
+  const idleAlerts = S.vehicles.filter(v=>v.active!==false).map(v=>({v, idle:vehicleIdleMs(v.id)})).filter(x=>x.idle!=null && x.idle>7200000);
+  return `
+  <div class="section-title">${t('alertsTitle')} <span class="tag">Loading &gt; ${S.settings.expectedLoading}m · Travel &gt; ${S.settings.expectedTravel}m · Unloading &gt; ${S.settings.expectedUnloading}m · Idle &gt; 2h</span></div>
+  ${idleAlerts.length ? `<div class="table-wrap" style="margin-bottom:20px;"><table><thead><tr><th>${tLine('thVehicle')}</th><th>${tLine('idleWord')}</th></tr></thead>
+  <tbody>${idleAlerts.map(a=>`<tr class="flag-row"><td class="mono">${a.v.number}</td><td class="mono kpi-flag">${fmtDur(a.idle)}</td></tr>`).join('')}</tbody></table></div>` : ''}
+  ${tripAlerts.length ? `<div class="table-wrap"><table>
+    <thead><tr><th>${tLine('thVehicle')}</th><th>${tLine('thDriver')}</th><th>${tLine('thRoute')}</th><th>${tLine('thStatus')}</th><th>${tLine('thFlags')}</th></tr></thead>
+    <tbody>${tripAlerts.map(a=>`<tr class="flag-row"><td class="mono">${a.t.vehicleNumber}</td><td>${escapeHtml(a.t.driverName)}</td>
+      <td>${escapeHtml(a.t.sourceName)} → ${escapeHtml(a.t.destName)}</td>
+      <td><span class="badge ${a.t.status==='completed'?'gray':'amber'}">${a.t.status==='completed'?tLine('completedWord'):tLine('inProgress')}</span></td>
+      <td>${a.flags.map(f=>`<span class="badge red" style="margin-right:4px;">${f}</span>`).join('')}</td></tr>`).join('')}</tbody></table></div>`
+    : (idleAlerts.length?'':`<div class="empty"><div class="big">✅</div>${tLine('alertsNone')}</div>`)}`;
+}
+
+/* ================= REPORTS / EXPORT ================= */
+function reportRows(){
+  return tripsInRange(S.reportsFilter).sort((a,b)=>b.createdAt-a.createdAt).map(t=>{
+    const m = tripMetrics(t);
+    const delayList = t.delays ? Object.values(t.delays) : [];
+    return {
+      'Date': fmtDate(t.createdAt), 'Vehicle': t.vehicleNumber, 'Driver': t.driverName, 'From': t.sourceName, 'To': t.destName, 'Status': t.status,
+      'Reached Source': t.ts.reachedSource?new Date(t.ts.reachedSource).toLocaleString('en-IN'):'',
+      'Loading Started': t.ts.loadingStart?new Date(t.ts.loadingStart).toLocaleString('en-IN'):'',
+      'Loading Completed': t.ts.loadingEnd?new Date(t.ts.loadingEnd).toLocaleString('en-IN'):'',
+      'Departed': t.ts.departed?new Date(t.ts.departed).toLocaleString('en-IN'):'',
+      'Reached Destination': t.ts.reachedDestination?new Date(t.ts.reachedDestination).toLocaleString('en-IN'):'',
+      'Unloading Started': t.ts.unloadingStart?new Date(t.ts.unloadingStart).toLocaleString('en-IN'):'',
+      'Unloading Completed': t.ts.unloadingEnd?new Date(t.ts.unloadingEnd).toLocaleString('en-IN'):'',
+      'Loading Time (min)': m.loadingTime!=null?Math.round(m.loadingTime/60000):'',
+      'Travel Time (min)': m.travelTime!=null?Math.round(m.travelTime/60000):'',
+      'Unloading Time (min)': m.unloadingTime!=null?Math.round(m.unloadingTime/60000):'',
+      'Turnaround (min)': m.turnaround!=null?Math.round(m.turnaround/60000):'',
+      'Delay Reason(s)': delayList.map(d=>d.reasonLabel).join('; '),
+      'Delay Remarks': delayList.map(d=>d.remarks).filter(Boolean).join('; '),
+      'Logged By': t.createdBy||'',
+    };
+  });
+}
+function renderReports(){
+  const rows = reportRows();
+  return `
+  <div class="section-title">${t('reportsTitle')}</div>
+  ${rangeBarHtml('reportsFilter', true)}
+  <div class="toolbar">
+    <div class="pill-row">
+      <button class="btn btn-outline btn-sm" onclick="exportCSV()">⬇ ${tLine('exportCsv')}</button>
+      <button class="btn btn-outline btn-sm" onclick="exportExcel()">⬇ ${tLine('exportExcel')}</button>
+      <button class="btn btn-outline btn-sm" onclick="exportPDF()">⬇ ${tLine('exportPdf')}</button>
+    </div>
+    <div style="color:var(--muted);font-size:12.5px;">${rows.length} ${tLine('tripsTodayLabel')}</div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>${tLine('thDate')}</th><th>${tLine('thVehicle')}</th><th>${tLine('thDriver')}</th><th>${tLine('thRoute')}</th><th>${tLine('thStatus')}</th><th>${tLine('loadingWord')}</th><th>${tLine('travelWord')}</th><th>${tLine('unloadingWord')}</th><th>${tLine('turnaroundTime')}</th><th>${tLine('thReason')}</th></tr></thead>
+      <tbody>
+        ${tripsInRange(S.reportsFilter).sort((a,b)=>b.createdAt-a.createdAt).map(t=>{
+          const m=tripMetrics(t);
+          const reasons = t.delays ? Object.values(t.delays).map(d=>d.reasonLabel).filter(Boolean) : [];
+          return `<tr><td class="mono">${fmtDate(t.createdAt)}</td><td class="mono">${t.vehicleNumber}</td><td>${escapeHtml(t.driverName)}</td>
+            <td>${escapeHtml(t.sourceName)} → ${escapeHtml(t.destName)}</td>
+            <td><span class="badge ${t.status==='completed'?'green':'amber'}">${t.status==='completed'?tLine('completedWord'):tLine('inProgress')}</span></td>
+            <td class="mono">${fmtDur(m.loadingTime)}</td><td class="mono">${fmtDur(m.travelTime)}</td>
+            <td class="mono">${fmtDur(m.unloadingTime)}</td><td class="mono">${fmtDur(m.turnaround)}</td>
+            <td>${reasons.length?reasons.map(r=>`<span class="badge red" style="margin-right:4px;">${escapeHtml(r)}</span>`).join(''):'—'}</td></tr>`;
+        }).join('') || `<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:30px;">${tLine('noTripsYet')}</td></tr>`}
+      </tbody>
+    </table>
+  </div>`;
+}
+function exportCSV(){
+  const rows = reportRows(); if(!rows.length){ alert('No trips today to export.'); return; }
+  const headers = Object.keys(rows[0]);
+  const csv = [headers.join(',')].concat(rows.map(r=>headers.map(h=>`"${(r[h]??'').toString().replace(/"/g,'""')}"`).join(','))).join('\n');
+  downloadBlob(new Blob([csv],{type:'text/csv'}), `snaptrack-trips-${dateStamp()}.csv`);
+}
+function exportExcel(){
+  const rows = reportRows(); if(!rows.length){ alert('No trips today to export.'); return; }
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Trips');
+  XLSX.writeFile(wb, `snaptrack-trips-${dateStamp()}.xlsx`);
+}
+function exportPDF(){
+  const rows = reportRows(); if(!rows.length){ alert('No trips today to export.'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({orientation:'landscape'});
+  doc.setFontSize(14); doc.text('SnapTrack — Yogabar Logistics Trip Report ('+dateStamp()+')', 14, 14);
+  doc.autoTable({
+    startY:20, styles:{fontSize:7},
+    head:[['Date','Vehicle','Driver','From','To','Status','Loading(min)','Travel(min)','Unloading(min)','Turnaround(min)','Delay Reason']],
+    body: rows.map(r=>[r['Date'],r['Vehicle'],r['Driver'],r['From'],r['To'],r['Status'],r['Loading Time (min)'],r['Travel Time (min)'],r['Unloading Time (min)'],r['Turnaround (min)'],r['Delay Reason(s)']])
+  });
+  doc.save(`snaptrack-trips-${dateStamp()}.pdf`);
+}
+function dateStamp(){ const d=new Date(); return d.toISOString().slice(0,10); }
+function downloadBlob(blob, filename){
+  const url = URL.createObjectURL(blob); const a=document.createElement('a');
+  a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+
+/* ================= ADMIN ================= */
+function renderAdmin(){
+  const tabs = [['settings','adminSettings'],['users','adminUsers'],['vehicles','adminVehicles'],['locations','adminLocations'],['delayreasons','adminDelayReasons'],['gates','adminGates'],['backup','Backup & Restore']];
+  return `
+  <div class="section-title">${t('adminTitle')}</div>
+  <div class="pill-row" style="margin-bottom:16px;">
+    ${tabs.map(([k,lk])=>`<button class="tab ${S.adminTab===k?'active':''}" style="background:${S.adminTab===k?'var(--charcoal)':'var(--card)'};border:1px solid var(--line);color:${S.adminTab===k?'white':'var(--muted)'}" onclick="setAdminTab('${k}')">${k==='backup'?lk:tLine(lk)}</button>`).join('')}
+  </div>
+  ${S.adminTab==='settings' ? renderAdminSettings() : ''}
+  ${S.adminTab==='users' ? renderAdminUsers() : ''}
+  ${S.adminTab==='vehicles' ? renderAdminVehicles() : ''}
+  ${S.adminTab==='locations' ? renderAdminLocations() : ''}
+  ${S.adminTab==='delayreasons' ? renderAdminDelayReasons() : ''}
+  ${S.adminTab==='gates' ? renderAdminGates() : ''}
+  ${S.adminTab==='backup' ? renderAdminBackup() : ''}
+  `;
+}
+function setAdminTab(k){ S.adminTab=k; render(); }
+
+function renderAdminSettings(){
+  const st = S.settings;
+  return `
+  <div class="card" style="max-width:480px;">
+    <h3 style="margin-top:0;">Expected Times &amp; Workday</h3>
+    <div class="form-row">
+      <div class="field"><label>Expected Loading (min)</label><input id="s_load" type="number" value="${st.expectedLoading}"></div>
+      <div class="field"><label>Expected Unloading (min)</label><input id="s_unl" type="number" value="${st.expectedUnloading}"></div>
+      <div class="field"><label>Expected Travel (min)</label><input id="s_trav" type="number" value="${st.expectedTravel}"></div>
+      <div class="field"><label>Workday Hours / Vehicle</label><input id="s_work" type="number" value="${st.workdayHours}"></div>
+    </div>
+    <button class="btn btn-primary" onclick="saveAdminSettings()">Save Settings</button>
+  </div>`;
+}
+async function saveAdminSettings(){
+  S.settings.expectedLoading = Number(document.getElementById('s_load').value)||30;
+  S.settings.expectedUnloading = Number(document.getElementById('s_unl').value)||25;
+  S.settings.expectedTravel = Number(document.getElementById('s_trav').value)||60;
+  S.settings.workdayHours = Number(document.getElementById('s_work').value)||10;
+  await saveSettings(); render();
+}
+
+function renderAdminUsers(){
+  const roleNow = document.getElementById('nu_role') ? document.getElementById('nu_role').value : 'operator';
+  return `
+  <div class="two-col">
+    <div class="card">
+      <h3 style="margin-top:0;">Team Accounts</h3>
+      <div class="table-wrap" style="box-shadow:none;border:none;">
+        <table>
+          <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Location</th><th></th></tr></thead>
+          <tbody>
+            ${S.users.map(u=>`<tr>
+              <td>${escapeHtml(u.name)} ${u.active===false?'<span class="badge gray">inactive</span>':''}</td>
+              <td class="mono">${escapeHtml(u.username)}</td>
+              <td><span class="badge blue">${roleLabel(u.role)}</span></td>
+              <td>${u.role==='operator'?escapeHtml(locationName(u.locationId)):'—'}</td>
+              <td class="pill-row">
+                <button class="btn btn-ghost btn-sm" onclick="resetPassword('${u.id}')">Reset pwd</button>
+                <button class="btn btn-ghost btn-sm" onclick="toggleUser('${u.id}')">${u.active===false?'Activate':'Deactivate'}</button>
+              </td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0;">Add Team Member</h3>
+      <div class="field"><label>Name</label><input id="nu_name" placeholder="e.g. Suresh Patil"></div>
+      <div class="field"><label>Username</label><input id="nu_username" placeholder="e.g. suresh.p" autocapitalize="off"></div>
+      <div class="field"><label>Temporary Password</label><input id="nu_password" type="password" placeholder="Min. 4 characters"></div>
+      <div class="field"><label>Role</label>
+        <select id="nu_role" onchange="render()">
+          <option value="operator" ${roleNow==='operator'?'selected':''}>Operator — logs on behalf of drivers, locked to one location</option>
+          <option value="driver" ${roleNow==='driver'?'selected':''}>Driver — has a smartphone, logs their own trip</option>
+          <option value="manager" ${roleNow==='manager'?'selected':''}>Manager — full read/reporting access, any location</option>
+          <option value="admin" ${roleNow==='admin'?'selected':''}>Admin — full access + manages accounts</option>
+        </select>
+      </div>
+      ${roleNow==='operator' ? `
+      <div class="field"><label>Assigned Location</label>
+        <select id="nu_location">${S.locations.map(l=>`<option value="${l.id}">${escapeHtml(l.name)}</option>`).join('')}</select>
+      </div>
+      <p class="footnote">This operator will only be able to log timestamps for trips at this one location.</p>` : ''}
+      <button class="btn btn-primary btn-block" onclick="addUser()">Create Account</button>
+    </div>
+  </div>
+  <p class="footnote">Passwords are hashed before storage but this is lightweight in-app auth for a small trusted team, not enterprise-grade security.</p>`;
+}
+async function addUser(){
+  const name=(document.getElementById('nu_name').value||'').trim();
+  const username=(document.getElementById('nu_username').value||'').trim().toLowerCase();
+  const password=document.getElementById('nu_password').value||'';
+  const role=document.getElementById('nu_role').value;
+  const locationId = role==='operator' ? document.getElementById('nu_location').value : null;
+  if(!name||!username||password.length<4){ alert('Fill in name, username, and a password of at least 4 characters.'); return; }
+  if(S.users.some(u=>u.username===username)){ alert('That username is already taken.'); return; }
+  try{
+    const created = await apiRequest('users', { method:'POST', auth:true, body:{ name, username, password, role, locationId } });
+    S.users.push({ id: created.id || uid('u'), name, username, role, locationId, active:true });
+    render();
+  }catch(e){
+    alert(e.message || 'Could not create the account.');
+  }
+}
+async function toggleUser(id){
+  const u = S.users.find(u=>u.id===id); if(!u) return;
+  if(u.id===S.user.id){ alert("You can't deactivate your own account while logged in."); return; }
+  const active = u.active===false ? true : false;
+  try{
+    await apiRequest(`users/${id}`, { method:'PATCH', auth:true, body:{ active } });
+    u.active = active;
+    render();
+  }catch(e){
+    alert(e.message || 'Could not update the account.');
+  }
+}
+async function resetPassword(id){
+  const u = S.users.find(u=>u.id===id); if(!u) return;
+  const pw = prompt('New temporary password for '+u.name+' (min. 4 characters):');
+  if(!pw) return;
+  if(pw.length<4){ alert('Password too short.'); return; }
+  try{
+    await apiRequest(`users/${id}/password`, { method:'POST', auth:true, body:{ password: pw } });
+    alert('Password updated.');
+  }catch(e){
+    alert(e.message || 'Could not reset the password.');
+  }
+}
+
+function renderAdminVehicles(){
+  return `
+  <div class="two-col">
+    <div class="card">
+      <h3 style="margin-top:0;">Vehicles</h3>
+      ${S.vehicles.map(v=>`<div class="list-row">
+        <div class="mono">${v.number} ${v.active===false?'<span class="badge gray">inactive</span>':''}</div>
+        <div class="pill-row">
+          <button class="btn btn-outline btn-sm" onclick="editVehicle('${v.id}')">Edit</button>
+          <button class="btn btn-outline btn-sm" onclick="toggleVehicle('${v.id}')">${v.active===false?'Activate':'Deactivate'}</button>
+          <button class="btn btn-ghost btn-sm" onclick="removeVehicle('${v.id}')">Remove</button>
+        </div>
+      </div>`).join('')}
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0;">Add Vehicle</h3>
+      <div class="field"><label>Vehicle Number</label><input id="newVehNum" placeholder="e.g. KA06MN1122"></div>
+      <button class="btn btn-primary btn-block" onclick="addVehicle()">Add Vehicle</button>
+    </div>
+  </div>`;
+}
+async function addVehicle(){
+  const el = document.getElementById('newVehNum'); const num = (el.value||'').trim().toUpperCase();
+  if(!num) return;
+  S.vehicles.push({id: uid('v'), number: num, active:true});
+  await saveVehicles(); render();
+}
+async function editVehicle(id){
+  const v = S.vehicles.find(v=>v.id===id); if(!v) return;
+  const val = prompt('Edit vehicle number:', v.number);
+  if(val==null) return;
+  const trimmed = val.trim();
+  if(!trimmed){ alert('Vehicle number cannot be empty.'); return; }
+  if(S.vehicles.some(o=>o.id!==id && o.number.toLowerCase()===trimmed.toLowerCase())){ alert('Another vehicle already uses that number.'); return; }
+  v.number = trimmed;
+  await saveVehicles(); render();
+}
+async function toggleVehicle(id){ const v=S.vehicles.find(v=>v.id===id); if(v){ v.active = v.active===false ? true : false; await saveVehicles(); render(); } }
+async function removeVehicle(id){
+  if(activeTripForVehicle(id)){ alert('This vehicle has an active trip — cannot remove.'); return; }
+  if(!confirm('Remove this vehicle? Historical trips are kept.')) return;
+  S.vehicles = S.vehicles.filter(v=>v.id!==id); await saveVehicles(); render();
+}
+
+function renderAdminLocations(){
+  return `
+  <div class="two-col">
+    <div class="card">
+      <h3 style="margin-top:0;">Locations</h3>
+      ${S.locations.map(l=>`<div class="list-row">
+        <div>${escapeHtml(l.name)} ${l.active===false?'<span class="badge gray">inactive</span>':''}</div>
+        <div class="pill-row">
+          <button class="btn btn-outline btn-sm" onclick="editLocation('${l.id}')">Edit</button>
+          <button class="btn btn-outline btn-sm" onclick="toggleLocation('${l.id}')">${l.active===false?'Activate':'Deactivate'}</button>
+          <button class="btn btn-ghost btn-sm" onclick="removeLocation('${l.id}')">Remove</button>
+        </div>
+      </div>`).join('')}
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0;">Add Location</h3>
+      <div class="field"><label>Location Name</label><input id="newLocName" placeholder="e.g. Hosur Warehouse"></div>
+      <button class="btn btn-primary btn-block" onclick="addLocation()">Add Location</button>
+      <p class="footnote">Every active location can be picked as a "From" or "To" point, gets its own gate QR code, and can be assigned to an Operator account.</p>
+    </div>
+  </div>`;
+}
+async function addLocation(){
+  const el=document.getElementById('newLocName'); const name=(el.value||'').trim();
+  if(!name) return; S.locations.push({id:uid('l'), name, active:true}); await saveLocations(); render();
+}
+async function editLocation(id){
+  const l = S.locations.find(l=>l.id===id); if(!l) return;
+  const val = prompt('Edit location name:', l.name);
+  if(val==null) return;
+  const trimmed = val.trim();
+  if(!trimmed){ alert('Location name cannot be empty.'); return; }
+  if(S.locations.some(o=>o.id!==id && o.name.toLowerCase()===trimmed.toLowerCase())){ alert('Another location already uses that name.'); return; }
+  l.name = trimmed;
+  await saveLocations(); render();
+}
+async function toggleLocation(id){ const l=S.locations.find(l=>l.id===id); if(l){ l.active = l.active===false ? true : false; await saveLocations(); render(); } }
+async function removeLocation(id){
+  const inUse = S.trips.some(t=>t.status==='in_progress' && (t.sourceId===id||t.destId===id));
+  if(inUse){ alert('This location is part of an active trip — cannot remove.'); return; }
+  if(S.users.some(u=>u.locationId===id && u.active!==false)){ alert('An active Operator account is assigned to this location — reassign or deactivate them first.'); return; }
+  if(!confirm('Remove this location? Historical trips keep their recorded name.')) return;
+  S.locations = S.locations.filter(l=>l.id!==id); await saveLocations(); render();
+}
+
+function renderAdminDelayReasons(){
+  return `
+  <div class="two-col">
+    <div class="card">
+      <h3 style="margin-top:0;">${tLine('adminDelayReasons')}</h3>
+      ${S.delayReasons.map(r=>`<div class="list-row">
+        <div>${escapeHtml(r.label)} ${r.active===false?'<span class="badge gray">inactive</span>':''}</div>
+        <div class="pill-row">
+          <button class="btn btn-outline btn-sm" onclick="editDelayReason('${r.id}')">Edit</button>
+          <button class="btn btn-outline btn-sm" onclick="toggleDelayReason('${r.id}')">${r.active===false?'Activate':'Deactivate'}</button>
+          <button class="btn btn-ghost btn-sm" onclick="removeDelayReason('${r.id}')">Remove</button>
+        </div>
+      </div>`).join('')}
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0;">Add Delay Reason</h3>
+      <div class="field"><label>Reason</label><input id="newDelayReason" placeholder="e.g. Traffic Congestion"></div>
+      <button class="btn btn-primary btn-block" onclick="addDelayReason()">Add Reason</button>
+      <p class="footnote">Shown to drivers/operators whenever a trip's loading, travel, or unloading time exceeds the expected time set in Settings — they must pick one (and can add a free-text remark) before continuing.</p>
+    </div>
+  </div>`;
+}
+async function addDelayReason(){
+  const el=document.getElementById('newDelayReason'); const label=(el.value||'').trim();
+  if(!label) return; S.delayReasons.push({id:uid('dr'), label, active:true}); await saveDelayReasons(); render();
+}
+async function editDelayReason(id){
+  const r = S.delayReasons.find(r=>r.id===id); if(!r) return;
+  const val = prompt('Edit delay reason:', r.label);
+  if(val==null) return;
+  const trimmed = val.trim();
+  if(!trimmed){ alert('Reason cannot be empty.'); return; }
+  if(S.delayReasons.some(o=>o.id!==id && o.label.toLowerCase()===trimmed.toLowerCase())){ alert('Another reason already uses that label.'); return; }
+  r.label = trimmed;
+  await saveDelayReasons(); render();
+}
+async function toggleDelayReason(id){ const r=S.delayReasons.find(r=>r.id===id); if(r){ r.active = r.active===false ? true : false; await saveDelayReasons(); render(); } }
+async function removeDelayReason(id){
+  if(!confirm('Remove this delay reason? Trips that already used it keep the recorded label.')) return;
+  S.delayReasons = S.delayReasons.filter(r=>r.id!==id); await saveDelayReasons(); render();
+}
+
+function renderAdminGates(){
+  return `
+  <p class="footnote" style="margin-bottom:14px;">Each QR code identifies a <b>location</b>, not a vehicle — the same printed poster is scanned by every vehicle that passes through that gate. Print one poster per location and mount it at that gate.</p>
+  <div class="grid grid-3">
+    ${S.locations.map(l=>`<div class="card" style="text-align:center;">
+      <h3 style="margin-top:0;font-size:15px;">${escapeHtml(l.name)}</h3>
+      <div class="qr-loc" data-locid="${l.id}" style="display:flex;justify-content:center;margin:14px 0;"></div>
+      ${l.active===false?'<span class="badge gray">inactive</span>':''}
+    </div>`).join('')}
+  </div>
+  <p class="footnote" style="margin-top:14px;">Future rollout: dedicated driver app, geofencing, and automatic trip creation on GPS arrival — the same location IDs carry straight over.</p>`;
+}
+
+function renderAdminBackup(){
+  return `
+  <div class="two-col">
+    <div class="card">
+      <h3 style="margin-top:0;">⬇ Export Full Backup</h3>
+      <p class="footnote" style="margin-top:0;">Downloads everything — vehicles, locations, user accounts, delay reasons, settings, and every trip ever logged — as one file. Do this <b>right before</b> asking for any app update, since republishing an artifact gets a new link and does not carry data forward automatically.</p>
+      <button class="btn btn-primary btn-block" onclick="exportFullBackup()">Download Backup (.json)</button>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0;">⬆ Restore From Backup</h3>
+      <p class="footnote" style="margin-top:0;"><b>This overwrites everything currently in the app</b> with the contents of the backup file. Use this right after opening a fresh, empty link, to bring your team, vehicles, and trip history back.</p>
+      <div class="field"><input type="file" id="restoreFile" accept="application/json"></div>
+      <button class="btn btn-outline btn-block" onclick="restoreFromBackup()">Restore Backup</button>
+    </div>
+  </div>`;
+}
+async function exportFullBackup(){
+  const allTrips = S.trips; // already the full in-memory set loaded from all month shards
+  const backup = {
+    exportedAt: new Date().toISOString(),
+    app: 'SnapTrack', version: 1,
+    vehicles: S.vehicles, locations: S.locations, users: S.users,
+    delayReasons: S.delayReasons, settings: S.settings, trips: allTrips
+  };
+  downloadBlob(new Blob([JSON.stringify(backup, null, 2)], {type:'application/json'}), `snaptrack-backup-${dateStamp()}.json`);
+}
+async function restoreFromBackup(){
+  const fileInput = document.getElementById('restoreFile');
+  const file = fileInput && fileInput.files[0];
+  if(!file){ alert('Choose a backup .json file first.'); return; }
+  if(!confirm('This will overwrite ALL current vehicles, locations, users, delay reasons, settings, and trips with the contents of this file. Continue?')) return;
+  try{
+    const text = await file.text();
+    const backup = JSON.parse(text);
+    if(!backup || !Array.isArray(backup.trips)){ alert('This does not look like a valid SnapTrack backup file.'); return; }
+    S.vehicles = backup.vehicles || []; await saveVehicles();
+    S.locations = backup.locations || []; await saveLocations();
+    S.users = backup.users || []; await saveUsers();
+    S.delayReasons = backup.delayReasons || []; await saveDelayReasons();
+    S.settings = Object.assign({}, DEFAULT_SETTINGS, backup.settings||{}); await saveSettings();
+    await restoreTripsFromBackup(backup.trips || []);
+    alert('Backup restored. Reloading…');
+    location.reload();
+  }catch(e){
+    alert('Could not read that file: '+e.message);
+  }
+}
+async function restoreTripsFromBackup(trips){
+  const shards = {};
+  trips.forEach(tr=>{ const mk=monthKeyOf(tr.createdAt); (shards[mk]=shards[mk]||[]).push(tr); });
+  const months = Object.keys(shards).sort();
+  await Promise.all(months.map(mk=>sSet('trips_'+mk, shards[mk], true)));
+  await sSet('trips_index', months, true);
+  S.tripMonthsIndex = months;
+  S.trips = trips;
+}
+
+function afterRenderHooks(){
+  document.querySelectorAll('.qr-loc').forEach(el=>{
+    if(!window.QRCode) return;
+    el.innerHTML='';
+    new QRCode(el, {text:gateToken(el.dataset.locid), width:140, height:140, colorDark:'#20302C', colorLight:'#ffffff'});
+  });
+}
+
+setInterval(()=>{
+  if(!S.user) return;
+  const dashLive = S.view==='dashboard' && S.dashFilter.preset==='today' && S.dashFilter.vehicleId==='all';
+  if(S.view==='trip'||S.view==='deck'||dashLive||S.view==='alerts') render();
+}, 30000);
+
+function addAppIcons(){
+  const icon = document.createElement('link'); icon.rel='icon'; icon.href=YB_LOGO; document.head.appendChild(icon);
+  const touch = document.createElement('link'); touch.rel='apple-touch-icon'; touch.href=YB_LOGO; document.head.appendChild(touch);
+}
+addAppIcons();
+boot();
+</script>
+</body>
+</html>

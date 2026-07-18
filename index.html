@@ -250,6 +250,7 @@ const STEP_LABEL = {
 };
 const SOURCE_STEPS = ['reachedSource','loadingStart','loadingEnd','departed'];
 const DEST_STEPS = ['reachedDestination','unloadingStart','unloadingEnd'];
+const TRANSIT_STEPS = ['departed'];
 const STEP_LABEL_KEY = {
   reachedSource:'stepReachedSource', loadingStart:'stepLoadingStart', loadingEnd:'stepLoadingEnd',
   departed:'stepDeparted', reachedDestination:'stepReachedDestination',
@@ -1382,7 +1383,7 @@ function renderFleetBoard(){
   
   // Build current state for each vehicle
   const vehicleStates = {};
-  S.vehicles.forEach(v => {
+  S.vehicles.filter(v=>v.active!==false).forEach(v => {
     vehicleStates[v.id] = { 
       id: v.id, 
       number: v.number, 
@@ -1405,17 +1406,18 @@ function renderFleetBoard(){
       vehicleStates[trip.vehicleId].destLocation = locationName(trip.destId);
       
       // Calculate current location and duration based on step
+      const ts = trip.ts || {};
       if(SOURCE_STEPS.includes(trip.step)){ 
         vehicleStates[trip.vehicleId].location = vehicleStates[trip.vehicleId].sourceLocation; 
-        vehicleStates[trip.vehicleId].durationMins = Math.round((Date.now() - trip.arrivedSourceAt) / 60000);
+        if(ts.reachedSource) vehicleStates[trip.vehicleId].durationMins = Math.round((Date.now() - ts.reachedSource) / 60000);
       } 
-      else if(TRANSIT_STEPS.includes(trip.step)){ 
+      else if(trip.step === 'departed'){ 
         vehicleStates[trip.vehicleId].location = 'Transit'; 
-        if(trip.departedSourceAt) vehicleStates[trip.vehicleId].durationMins = Math.round((Date.now() - trip.departedSourceAt) / 60000);
+        if(ts.departed) vehicleStates[trip.vehicleId].durationMins = Math.round((Date.now() - ts.departed) / 60000);
       }
       else if(DEST_STEPS.includes(trip.step)){ 
         vehicleStates[trip.vehicleId].location = vehicleStates[trip.vehicleId].destLocation; 
-        vehicleStates[trip.vehicleId].durationMins = Math.round((Date.now() - trip.arrivedDestAt) / 60000);
+        if(ts.reachedDestination) vehicleStates[trip.vehicleId].durationMins = Math.round((Date.now() - ts.reachedDestination) / 60000);
       }
     }
   });
@@ -1430,7 +1432,7 @@ function renderFleetBoard(){
     if(v.status === 'available') return 'badge gray';
     if(!v.trip) return 'badge gray';
     if(SOURCE_STEPS.includes(v.step)) return 'badge amber';
-    if(TRANSIT_STEPS.includes(v.step)) return 'badge blue';
+    if(v.step === 'departed') return 'badge blue';
     if(DEST_STEPS.includes(v.step)) return 'badge green';
     return 'badge gray';
   };

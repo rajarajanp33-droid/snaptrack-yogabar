@@ -170,7 +170,7 @@ a{color:inherit;}
 .queue-meta{font-size:12px;color:var(--muted);}
 .queue-btn{width:100%;padding:13px;border-radius:10px;background:var(--orange);color:white;font-weight:700;font-size:14.5px;border:none;}
 .queue-btn:hover{background:var(--orange-dark);}
-.new-arrival-card{border:1.5px dashed var(--amber);background:var(--amber-light);}
+.new-arrival-card{border:1.5px dashed var(--amber);background:var(--amber-light);position:sticky;bottom:0;z-index:30;margin:-18px -18px -18px -18px;padding:18px;border-radius:0 0 var(--radius) var(--radius);}
 .new-arrival-card .field label{color:#8A5C0B;}
 
 .table-wrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);}
@@ -244,8 +244,8 @@ video#scanvid{width:100%;border-radius:12px;background:#000;}
 
 const STEP_KEYS = ['reachedSource','loadingStart','loadingEnd','departed','reachedDestination','unloadingStart','unloadingEnd'];
 const STEP_LABEL = {
-  reachedSource:'Reached Source', loadingStart:'Loading Started', loadingEnd:'Loading Completed',
-  departed:'Departed', reachedDestination:'Reached Destination', unloadingStart:'Unloading Started',
+  reachedSource:'Reached Source', loadingStart:'Begin Loading', loadingEnd:'Loading Completed',
+  departed:'Departed', reachedDestination:'Reached Destination', unloadingStart:'Begin Unloading',
   unloadingEnd:'Unloading Completed'
 };
 const SOURCE_STEPS = ['reachedSource','loadingStart','loadingEnd','departed'];
@@ -1208,34 +1208,64 @@ async function openScan(tripId, locId){
     <div class="qr-box">
       <video id="scanvid" autoplay playsinline muted></video>
       <canvas id="scancanvas" style="display:none;"></canvas>
-      <div id="scanStatus" class="footnote">Point the camera at the gate QR code…</div>
+      <div id="scanStatus" class="footnote">Initializing camera…</div>
     </div>
   </div>`;
   document.body.appendChild(modal);
   try{
-    const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
-    const video = document.getElementById('scanvid'); video.srcObject = stream;
+    const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment', width:{ideal:1280}, height:{ideal:720}}});
+    const video = document.getElementById('scanvid');
+    if(!video) return;
+    video.srcObject = stream;
+    video.onloadedmetadata = () => video.play();
     S.scanCtx = {stream};
-    const canvas = document.getElementById('scancanvas'); const ctx = canvas.getContext('2d');
+    const canvas = document.getElementById('scancanvas');
+    const ctx = canvas.getContext('2d');
     const expected = gateToken(locId);
+    let scanActive = true;
     const tick = ()=>{
-      if(!document.getElementById('scanModal')) return;
-      if(video.readyState===video.HAVE_ENOUGH_DATA){
-        canvas.width=video.videoWidth; canvas.height=video.videoHeight;
+      if(!scanActive || !document.getElementById('scanModal')) {
+        scanActive = false;
+        return;
+      }
+      if(video && video.readyState===video.HAVE_ENOUGH_DATA){
+        canvas.width=video.videoWidth;
+        canvas.height=video.videoHeight;
         ctx.drawImage(video,0,0,canvas.width,canvas.height);
         const img = ctx.getImageData(0,0,canvas.width,canvas.height);
-        const code = jsQR(img.data, img.width, img.height);
-        if(code && code.data){
-          if(code.data.trim()===expected){
-            document.getElementById('scanStatus').textContent = '✓ Gate verified — saving timestamp…';
-            closeScan(); advanceTrip(tripId); return;
-          } else { document.getElementById('scanStatus').textContent = 'QR does not match this gate — try again.'; }
+        try{
+          const code = jsQR(img.data, img.width, img.height);
+          if(code && code.data){
+            if(code.data.trim()===expected){
+              document.getElementById('scanStatus').textContent = '✓ Gate verified — saving…';
+              scanActive = false;
+              closeScan();
+              advanceTrip(tripId);
+              return;
+            } else {
+              document.getElementById('scanStatus').textContent = '✗ Wrong QR code — point at the gate QR';
+            }
+          } else {
+            // Show searching status periodically
+            const now = Date.now();
+            if(Math.floor(now/500) % 2 === 0) {
+              document.getElementById('scanStatus').textContent = 'Scanning for QR code…';
+            }
+          }
+        }catch(e){
+          console.error('jsQR error:', e);
         }
       }
       S.scanCtx.timer = requestAnimationFrame(tick);
     };
     S.scanCtx.timer = requestAnimationFrame(tick);
-  }catch(e){ document.getElementById('scanStatus').textContent = 'Camera unavailable ('+e.message+'). Use the button instead.'; }
+  }catch(e){
+    const statusEl = document.getElementById('scanStatus');
+    if(statusEl) {
+      statusEl.textContent = '✗ Camera unavailable. Use the button instead. ('+e.name+')';
+    }
+    console.error('Camera access error:', e);
+  }
 }
 function closeScan(){
   if(S.scanCtx){ if(S.scanCtx.timer) cancelAnimationFrame(S.scanCtx.timer); if(S.scanCtx.stream) S.scanCtx.stream.getTracks().forEach(t=>t.stop()); S.scanCtx=null; }

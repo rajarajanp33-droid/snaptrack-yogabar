@@ -170,7 +170,7 @@ a{color:inherit;}
 .queue-meta{font-size:12px;color:var(--muted);}
 .queue-btn{width:100%;padding:13px;border-radius:10px;background:var(--orange);color:white;font-weight:700;font-size:14.5px;border:none;}
 .queue-btn:hover{background:var(--orange-dark);}
-.new-arrival-card{border:1.5px dashed var(--amber);background:var(--amber-light);position:sticky;bottom:0;z-index:30;margin:-18px -18px -18px -18px;padding:18px;border-radius:0 0 var(--radius) var(--radius);}
+.new-arrival-card{border:1.5px dashed var(--amber);background:var(--amber-light);margin-top:20px;padding:18px;border-radius:var(--radius);box-shadow:0 -2px 8px rgba(32,48,44,0.08);}
 .new-arrival-card .field label{color:#8A5C0B;}
 
 .table-wrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);}
@@ -278,7 +278,7 @@ en:{
  routeSource:"Source", routeTransit:"On the road", routeDestination:"Destination",
  logout:"Log out",
  roleAdmin:"Admin", roleManager:"Manager", roleOperator:"Operator", roleDriver:"Driver",
- navDeck:"Trip Desk", navDashboard:"Dashboard", navVehicles:"Vehicles", navAnalytics:"Analytics",
+ navFleet:"Fleet Status", navDeck:"Trip Desk", navDashboard:"Dashboard", navVehicles:"Vehicles", navAnalytics:"Analytics",
  navAlerts:"Alerts", navReports:"Reports", navAdmin:"Admin", navTrip:"My Trip",
  stepReachedSource:"Reached Source", stepLoadingStart:"Loading Started", stepLoadingEnd:"Loading Completed",
  stepDeparted:"Departed", stepReachedDestination:"Reached Destination",
@@ -339,7 +339,7 @@ hi:{
  routeSource:"स्रोत", routeTransit:"रास्ते में", routeDestination:"गंतव्य",
  logout:"लॉग आउट",
  roleAdmin:"एडमिन", roleManager:"मैनेजर", roleOperator:"ऑपरेटर", roleDriver:"ड्राइवर",
- navDeck:"ट्रिप डेस्क", navDashboard:"डैशबोर्ड", navVehicles:"वाहन", navAnalytics:"विश्लेषण",
+ navFleet:"फ्लीट स्थिति", navDeck:"ट्रिप डेस्क", navDashboard:"डैशबोर्ड", navVehicles:"वाहन", navAnalytics:"विश्लेषण",
  navAlerts:"अलर्ट", navReports:"रिपोर्ट", navAdmin:"एडमिन", navTrip:"मेरी ट्रिप",
  stepReachedSource:"स्रोत पर पहुंचे", stepLoadingStart:"लोडिंग शुरू", stepLoadingEnd:"लोडिंग पूरी",
  stepDeparted:"रवाना हुए", stepReachedDestination:"गंतव्य पर पहुंचे",
@@ -400,7 +400,7 @@ kn:{
  routeSource:"ಮೂಲ", routeTransit:"ದಾರಿಯಲ್ಲಿ", routeDestination:"ಗಮ್ಯಸ್ಥಾನ",
  logout:"ಲಾಗ್ ಔಟ್",
  roleAdmin:"ಅಡ್ಮಿನ್", roleManager:"ಮ್ಯಾನೇಜರ್", roleOperator:"ಆಪರೇಟರ್", roleDriver:"ಡ್ರೈವರ್",
- navDeck:"ಟ್ರಿಪ್ ಡೆಸ್ಕ್", navDashboard:"ಡ್ಯಾಶ್‌ಬೋರ್ಡ್", navVehicles:"ವಾಹನಗಳು", navAnalytics:"ವಿಶ್ಲೇಷಣೆ",
+ navFleet:"ಫ್ಲೀಟ್ ಸ್ಥಿತಿ", navDeck:"ಟ್ರಿಪ್ ಡೆಸ್ಕ್", navDashboard:"ಡ್ಯಾಶ್‌ಬೋರ್ಡ್", navVehicles:"ವಾಹನಗಳು", navAnalytics:"ವಿಶ್ಲೇಷಣೆ",
  navAlerts:"ಎಚ್ಚರಿಕೆಗಳು", navReports:"ವರದಿಗಳು", navAdmin:"ಅಡ್ಮಿನ್", navTrip:"ನನ್ನ ಟ್ರಿಪ್",
  stepReachedSource:"ಮೂಲ ತಲುಪಿದೆ", stepLoadingStart:"ಲೋಡಿಂಗ್ ಪ್ರಾರಂಭ", stepLoadingEnd:"ಲೋಡಿಂಗ್ ಪೂರ್ಣ",
  stepDeparted:"ಹೊರಟಿದೆ", stepReachedDestination:"ಗಮ್ಯಸ್ಥಾನ ತಲುಪಿದೆ",
@@ -461,7 +461,7 @@ ta:{
  routeSource:"மூலம்", routeTransit:"வழியில்", routeDestination:"இலக்கு",
  logout:"வெளியேறு",
  roleAdmin:"நிர்வாகி", roleManager:"மேலாளர்", roleOperator:"ஆபரேட்டர்", roleDriver:"ஓட்டுநர்",
- navDeck:"டிரிப் டெஸ்க்", navDashboard:"டாஷ்போர்டு", navVehicles:"வாகனங்கள்", navAnalytics:"பகுப்பாய்வு",
+ navFleet:"கப்பற்றுநர் நிலை", navDeck:"டிரிப் டெஸ்க்", navDashboard:"டாஷ்போர்டு", navVehicles:"வாகனங்கள்", navAnalytics:"பகுப்பாய்வு",
  navAlerts:"எச்சரிக்கைகள்", navReports:"அறிக்கைகள்", navAdmin:"நிர்வாகி", navTrip:"எனது டிரிப்",
  stepReachedSource:"மூலத்தை அடைந்தது", stepLoadingStart:"ஏற்றுதல் தொடங்கியது", stepLoadingEnd:"ஏற்றுதல் முடிந்தது",
  stepDeparted:"புறப்பட்டது", stepReachedDestination:"இலக்கை அடைந்தது",
@@ -543,6 +543,7 @@ let S = {
   tripDraft: { vehicleId:null, sourceId:null, destId:null },
   deskDraft: { vehicleId:null, destId:null, driverName:'' },
   deskLocationId: null,
+  fleetFilter: { type: 'all' },
   vehFilter: { preset:'today', from:null, to:null, vehicleId:'all' },
   analyticsFilter: { preset:'today', from:null, to:null, vehicleId:'all' },
   reportsFilter: { preset:'today', from:null, to:null, vehicleId:'all' },
@@ -865,6 +866,7 @@ function render(){
   if(S.view==='trip') body = renderTrip();
   else if(S.view==='deck') body = renderDesk();
   else if(S.view==='dashboard') body = renderDashboard();
+  else if(S.view==='fleetboard') body = renderFleetBoard();
   else if(S.view==='vehicles') body = renderVehicleReport();
   else if(S.view==='analytics') body = renderAnalytics();
   else if(S.view==='alerts') body = renderAlerts();
@@ -873,10 +875,10 @@ function render(){
   else body = defaultViewFor(S.user.role);
 
   const navTabs = [];
-  if(S.user.role==='operator'){ navTabs.push({k:'deck', lk:'navDeck'}); }
+  if(S.user.role==='operator'){ navTabs.push({k:'deck', lk:'navDeck'}, {k:'fleetboard', lk:'navFleet'}); }
   if(S.user.role==='driver'){ navTabs.push({k:'trip', lk:'navTrip'}, {k:'dashboard', lk:'navDashboard'}); }
   if(S.user.role==='admin' || S.user.role==='manager'){
-    navTabs.push({k:'deck', lk:'navDeck'}, {k:'dashboard', lk:'navDashboard'}, {k:'vehicles', lk:'navVehicles'}, {k:'analytics', lk:'navAnalytics'}, {k:'alerts', lk:'navAlerts'}, {k:'reports', lk:'navReports'});
+    navTabs.push({k:'fleetboard', lk:'navFleet'}, {k:'deck', lk:'navDeck'}, {k:'dashboard', lk:'navDashboard'}, {k:'vehicles', lk:'navVehicles'}, {k:'analytics', lk:'navAnalytics'}, {k:'alerts', lk:'navAlerts'}, {k:'reports', lk:'navReports'});
   }
   if(S.user.role==='admin') navTabs.push({k:'admin', lk:'navAdmin'});
   const tabsHtml = navTabs.map(tb=>`<button class="tab ${S.view===tb.k?'active':''}" onclick="goView('${tb.k}')">${t(tb.lk)}</button>`).join('');
@@ -1372,6 +1374,113 @@ function deskQueueCard(trip){
       ${key==='reachedDestination' ? `<div class="qr-alt"><button onclick="openScan('${trip.id}','${trip.destId}')">${tLine('scanInstead',{loc:locationName(trip.destId)})}</button></div>` : ''}
     </div>
   </div>`;
+}
+
+/* ================= FLEET BOARD ================= */
+function renderFleetBoard(){
+  const allTrips = S.trips.filter(t => t.status === 'in_progress');
+  
+  // Build current state for each vehicle
+  const vehicleStates = {};
+  S.vehicles.forEach(v => {
+    vehicleStates[v.id] = { 
+      id: v.id, 
+      number: v.number, 
+      status: 'available', 
+      location: null, 
+      step: null, 
+      trip: null,
+      durationMins: 0,
+      sourceLocation: null,
+      destLocation: null
+    };
+  });
+
+  allTrips.forEach(trip => {
+    if(vehicleStates[trip.vehicleId]){
+      vehicleStates[trip.vehicleId].status = 'in_transit';
+      vehicleStates[trip.vehicleId].trip = trip;
+      vehicleStates[trip.vehicleId].step = trip.step;
+      vehicleStates[trip.vehicleId].sourceLocation = locationName(trip.sourceId);
+      vehicleStates[trip.vehicleId].destLocation = locationName(trip.destId);
+      
+      // Calculate current location and duration based on step
+      if(SOURCE_STEPS.includes(trip.step)){ 
+        vehicleStates[trip.vehicleId].location = vehicleStates[trip.vehicleId].sourceLocation; 
+        vehicleStates[trip.vehicleId].durationMins = Math.round((Date.now() - trip.arrivedSourceAt) / 60000);
+      } 
+      else if(TRANSIT_STEPS.includes(trip.step)){ 
+        vehicleStates[trip.vehicleId].location = 'Transit'; 
+        if(trip.departedSourceAt) vehicleStates[trip.vehicleId].durationMins = Math.round((Date.now() - trip.departedSourceAt) / 60000);
+      }
+      else if(DEST_STEPS.includes(trip.step)){ 
+        vehicleStates[trip.vehicleId].location = vehicleStates[trip.vehicleId].destLocation; 
+        vehicleStates[trip.vehicleId].durationMins = Math.round((Date.now() - trip.arrivedDestAt) / 60000);
+      }
+    }
+  });
+
+  const vehicles = Object.values(vehicleStates);
+  const filter = S.fleetFilter.type;
+  let filtered = vehicles;
+  if(filter === 'busy') filtered = vehicles.filter(v => v.status === 'in_transit');
+  else if(filter === 'available') filtered = vehicles.filter(v => v.status === 'available');
+
+  const getStatusColor = (v) => {
+    if(v.status === 'available') return 'badge gray';
+    if(!v.trip) return 'badge gray';
+    if(SOURCE_STEPS.includes(v.step)) return 'badge amber';
+    if(TRANSIT_STEPS.includes(v.step)) return 'badge blue';
+    if(DEST_STEPS.includes(v.step)) return 'badge green';
+    return 'badge gray';
+  };
+
+  const getStatusLabel = (v) => {
+    if(!v.trip) return 'Available';
+    return STEP_LABEL[v.step] || v.step;
+  };
+
+  return `
+  <div>
+    <div class="section-title">Fleet Status Board <span class="count">${filtered.length}</span></div>
+    <div class="toolbar">
+      <div class="pill-row">
+        <button class="btn btn-sm ${filter === 'all' ? 'btn-primary' : 'btn-outline'}" onclick="S.fleetFilter.type='all'; render()">All (${vehicles.length})</button>
+        <button class="btn btn-sm ${filter === 'busy' ? 'btn-primary' : 'btn-outline'}" onclick="S.fleetFilter.type='busy'; render()">In Transit (${vehicles.filter(v=>v.status==='in_transit').length})</button>
+        <button class="btn btn-sm ${filter === 'available' ? 'btn-primary' : 'btn-outline'}" onclick="S.fleetFilter.type='available'; render()">Available (${vehicles.filter(v=>v.status==='available').length})</button>
+      </div>
+    </div>
+
+    ${filtered.length ? `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Vehicle</th>
+            <th>Status</th>
+            <th>Current Location</th>
+            <th>Duration</th>
+            <th>Route</th>
+            <th>Next Gate</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${filtered.map(v => `
+          <tr>
+            <td class="mono"><strong>${escapeHtml(v.number)}</strong></td>
+            <td><span class="${getStatusColor(v)}">${getStatusLabel(v)}</span></td>
+            <td>${escapeHtml(v.location || 'Yard')}</td>
+            <td class="mono">${v.trip ? v.durationMins + ' min' : '—'}</td>
+            <td>${v.trip ? escapeHtml(v.sourceLocation) + ' → ' + escapeHtml(v.destLocation) : '—'}</td>
+            <td>${v.trip ? escapeHtml(v.destLocation) : '—'}</td>
+          </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+    ` : `<div class="empty"><div class="big">✓</div>All vehicles are ready and available.</div>`}
+  </div>
+  `;
 }
 
 /* ================= DASHBOARD ================= */

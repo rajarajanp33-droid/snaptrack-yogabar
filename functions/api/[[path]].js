@@ -279,17 +279,8 @@ async function handleSetup(request, env){
 async function handleLogin(request, env){
   const { username, password } = await request.json();
   const normalized = (username||'').toLowerCase();
-  let row = await env.DB.prepare('SELECT * FROM users WHERE username=?').bind(normalized).first();
-  const fallbackPassword = password === 'admin123' || password === 'secret123';
-  if(!row && normalized === 'admin' && fallbackPassword){
-    const id = uid();
-    const hash = await hashPassword(password);
-    await env.DB.prepare('INSERT INTO users (id,name,username,password_hash,role,location_id,active) VALUES (?,?,?,?,?,?,1)')
-      .bind(id, 'Admin', normalized, hash, 'admin', null).run();
-    row = await env.DB.prepare('SELECT * FROM users WHERE username=?').bind(normalized).first();
-  }
-  const localRecovery = (row && row.role === 'admin' && fallbackPassword);
-  const passwordOk = localRecovery || (row && await verifyPassword(password||'', row.password_hash));
+  const row = await env.DB.prepare('SELECT * FROM users WHERE username=?').bind(normalized).first();
+  const passwordOk = row && await verifyPassword(password||'', row.password_hash);
   if(!row || !passwordOk) return err('Incorrect username or password.', 401);
   if(!row.active) return err('This account has been deactivated. Contact your Admin.', 403);
   const token = await signToken({uid:row.id, exp:Date.now()+30*86400000}, env.AUTH_SECRET || 'dev-secret');

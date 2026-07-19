@@ -64,6 +64,7 @@ a{color:inherit;}
 .userchip .locpin{font-size:10.5px;color:var(--blue);background:var(--blue-light);padding:2px 8px;border-radius:20px;font-weight:700;}
 .logout-btn{background:none;border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12.5px;font-weight:600;color:var(--muted);}
 .logout-btn:hover{border-color:var(--red);color:var(--red);}
+.alert-badge{display:inline-block;background:var(--red);color:white;border-radius:20px;font-size:10px;font-weight:800;padding:1px 6px;margin-left:4px;vertical-align:middle;line-height:16px;min-width:16px;text-align:center;}
 
 .main{flex:1;padding:24px;max-width:1240px;margin:0 auto;width:100%;}
 @media(max-width:720px){.main{padding:14px;}.topbar{padding:12px 14px;}}
@@ -545,6 +546,7 @@ let S = {
   deskDraft: { vehicleId:null, destId:null, driverName:'' },
   deskLocationId: null,
   fleetFilter: { type: 'all' },
+  notifiedDelays: new Set(), // tracks trip+flag combos already notified
   vehFilter: { preset:'today', from:null, to:null, vehicleId:'all' },
   analyticsFilter: { preset:'today', from:null, to:null, vehicleId:'all' },
   reportsFilter: { preset:'today', from:null, to:null, vehicleId:'all' },
@@ -882,7 +884,29 @@ function render(){
     navTabs.push({k:'fleetboard', lk:'navFleet'}, {k:'deck', lk:'navDeck'}, {k:'dashboard', lk:'navDashboard'}, {k:'vehicles', lk:'navVehicles'}, {k:'analytics', lk:'navAnalytics'}, {k:'alerts', lk:'navAlerts'}, {k:'reports', lk:'navReports'});
   }
   if(S.user.role==='admin') navTabs.push({k:'admin', lk:'navAdmin'});
-  const tabsHtml = navTabs.map(tb=>`<button class="tab ${S.view===tb.k?'active':''}" onclick="goView('${tb.k}')">${t(tb.lk)}</button>`).join('');
+  // Compute alert badge count for relevant roles
+  const alertBadge = (()=>{
+    if(!S.user || S.user.role==='driver') return 0;
+    const today = S.trips.filter(t=>isToday(t.createdAt));
+    let count = 0;
+    today.forEach(trip=>{
+      const flags = tripFlags(trip);
+      // Operator: only count their location's trips
+      if(S.user.role==='operator'){
+        if(trip.sourceId !== S.user.locationId && trip.destId !== S.user.locationId) return;
+      }
+      count += flags.length;
+    });
+    // Also count vehicles idle > 2h
+    if(S.user.role==='admin' || S.user.role==='manager'){
+      count += S.vehicles.filter(v=>v.active!==false).filter(v=>{ const idle=vehicleIdleMs(v.id); return idle!=null && idle>7200000; }).length;
+    }
+    return count;
+  })();
+  const tabsHtml = navTabs.map(tb=>{
+    const isAlert = tb.k==='alerts' && alertBadge > 0;
+    return `<button class="tab ${S.view===tb.k?'active':''}" onclick="goView('${tb.k}')">${t(tb.lk)}${isAlert?` <span class="alert-badge">${alertBadge}</span>`:''}</button>`;
+  }).join('');
 
   app.innerHTML = `
     <div class="topbar">
@@ -1000,6 +1024,8 @@ async function doLogin(){
     persistToken(data.token); AUTH_TOKEN=data.token;
     await sSet('last_username', username, false);
     await boot();
+    // Request notification permission after login (non-blocking)
+    if(data.user && data.user.role !== 'driver') requestNotificationPermission();
   }catch(e){
     S.loginError = e.message || 'Incorrect username or password.';
     render();
@@ -1742,16 +1768,27 @@ function renderAlerts(){
   const today = S.trips.filter(t=>isToday(t.createdAt));
   const tripAlerts = [];
   today.forEach(t=>{ const flags = tripFlags(t); if(flags.length) tripAlerts.push({t, flags}); });
+  const activeAlerts = tripAlerts.filter(a=>a.t.status==='in_progress');
   const idleAlerts = S.vehicles.filter(v=>v.active!==false).map(v=>({v, idle:vehicleIdleMs(v.id)})).filter(x=>x.idle!=null && x.idle>7200000);
+  const totalActive = activeAlerts.length + idleAlerts.length;
+
+  const notifBanner = ('Notification' in window && Notification.permission !== 'granted') ? `
+  <div style="background:var(--amber-light);border:1.5px solid var(--amber);border-radius:var(--radius);padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <span style="font-size:20px;">🔔</span>
+    <div style="flex:1;min-width:200px;"><b>Enable push notifications</b><br><span style="font-size:13px;color:var(--muted);">Get notified on your phone the moment a vehicle exceeds the time limit — even with the app in the background.</span></div>
+    <button class="btn btn-primary btn-sm" onclick="requestNotificationPermission().then(()=>render())">Allow Notifications</button>
+  </div>` : (Notification.permission === 'granted' ? `<div style="font-size:12px;color:var(--green);margin-bottom:10px;">🔔 Push notifications are <b>active</b> — you'll be alerted even when the app is in the background.</div>` : '');
+
   return `
-  <div class="section-title">${t('alertsTitle')} <span class="tag">Loading &gt; ${S.settings.expectedLoading}m · Travel &gt; ${S.settings.expectedTravel}m · Unloading &gt; ${S.settings.expectedUnloading}m · Idle &gt; 2h</span></div>
+  ${notifBanner}
+  <div class="section-title">${t('alertsTitle')} <span class="tag">Loading &gt; ${S.settings.expectedLoading}m · Travel &gt; ${S.settings.expectedTravel}m · Unloading &gt; ${S.settings.expectedUnloading}m · Idle &gt; 2h</span>${totalActive>0?`<span class="count" style="background:var(--red-light);color:var(--red);">${totalActive} active</span>`:''}</div>
   ${idleAlerts.length ? `<div class="table-wrap" style="margin-bottom:20px;"><table><thead><tr><th>${tLine('thVehicle')}</th><th>${tLine('idleWord')}</th></tr></thead>
   <tbody>${idleAlerts.map(a=>`<tr class="flag-row"><td class="mono">${a.v.number}</td><td class="mono kpi-flag">${fmtDur(a.idle)}</td></tr>`).join('')}</tbody></table></div>` : ''}
   ${tripAlerts.length ? `<div class="table-wrap"><table>
     <thead><tr><th>${tLine('thVehicle')}</th><th>${tLine('thDriver')}</th><th>${tLine('thRoute')}</th><th>${tLine('thStatus')}</th><th>${tLine('thFlags')}</th></tr></thead>
     <tbody>${tripAlerts.map(a=>`<tr class="flag-row"><td class="mono">${a.t.vehicleNumber}</td><td>${escapeHtml(a.t.driverName)}</td>
       <td>${escapeHtml(a.t.sourceName)} → ${escapeHtml(a.t.destName)}</td>
-      <td><span class="badge ${a.t.status==='completed'?'gray':'amber'}">${a.t.status==='completed'?tLine('completedWord'):tLine('inProgress')}</span></td>
+      <td><span class="badge ${a.t.status==='completed'?'gray':'red'}">${a.t.status==='completed'?tLine('completedWord'):'⚠ Overdue'}</span></td>
       <td>${a.flags.map(f=>`<span class="badge red" style="margin-right:4px;">${f}</span>`).join('')}</td></tr>`).join('')}</tbody></table></div>`
     : (idleAlerts.length?'':`<div class="empty"><div class="big">✅</div>${tLine('alertsNone')}</div>`)}`;
 }
@@ -2179,10 +2216,49 @@ function afterRenderHooks(){
   });
 }
 
+/* ========== DELAY NOTIFICATION ENGINE ========== */
+function checkAndNotifyDelays(){
+  if(!S.user || S.user.role==='driver') return;
+  if(!('Notification' in window) || Notification.permission !== 'granted') return;
+
+  const today = S.trips.filter(t => isToday(t.createdAt) && t.status === 'in_progress');
+  today.forEach(trip => {
+    const flags = tripFlags(trip);
+    if(!flags.length) return;
+    // Operator: only notify about their location's trips
+    if(S.user.role === 'operator'){
+      if(trip.sourceId !== S.user.locationId && trip.destId !== S.user.locationId) return;
+    }
+    flags.forEach(flag => {
+      const key = trip.id + '|' + flag;
+      if(!S.notifiedDelays.has(key)){
+        S.notifiedDelays.add(key);
+        try{
+          const n = new Notification('⚠️ SnapTrack Delay Alert', {
+            body: `${trip.vehicleNumber} (${trip.sourceName} → ${trip.destName}): ${flag}`,
+            icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="%23F0603E"/><text x="16" y="21" text-anchor="middle" fill="white" font-size="18">⚠</text></svg>',
+            tag: key,
+            requireInteraction: false
+          });
+          n.onclick = ()=>{ goView('alerts'); n.close(); window.focus(); };
+        }catch(e){ console.warn('Notification error:', e); }
+      }
+    });
+  });
+}
+async function requestNotificationPermission(){
+  if(!('Notification' in window)) return;
+  if(Notification.permission === 'granted') return;
+  if(Notification.permission !== 'denied'){
+    await Notification.requestPermission();
+  }
+}
+
 setInterval(()=>{
   if(!S.user) return;
   const dashLive = S.view==='dashboard' && S.dashFilter.preset==='today' && S.dashFilter.vehicleId==='all';
-  if(S.view==='trip'||S.view==='deck'||dashLive||S.view==='alerts') render();
+  if(S.view==='trip'||S.view==='deck'||dashLive||S.view==='alerts'||S.view==='fleetboard') render();
+  checkAndNotifyDelays();
 }, 30000);
 
 function addAppIcons(){

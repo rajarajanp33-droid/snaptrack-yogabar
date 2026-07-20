@@ -1240,12 +1240,25 @@ async function openScan(tripId, locId){
       <div id="scanStatus" class="footnote" style="text-align:center;margin-top:10px;font-size:14px;">Starting camera…</div>
     </div>
     <p class="footnote" style="text-align:center;">Hold the phone steady — point at the QR code on the gate</p>
+    <input id="scanImageInput" type="file" accept="image/*" style="display:none;" onchange="handleScanImageUpload(event,'${tripId}','${locId}')">
+    <button class="btn btn-outline btn-block" type="button" onclick="document.getElementById('scanImageInput').click()">Upload QR photo</button>
+    <button class="btn btn-outline btn-block" type="button" onclick="confirmScannedGate('${tripId}')">Continue without camera</button>
   </div>`;
   document.body.appendChild(modal);
+  const setStatus = (msg) => { const el = document.getElementById('scanStatus'); if(el) el.textContent = msg; };
+  if(!window.isSecureContext || !navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function'){
+    setStatus('Camera scanning needs HTTPS or localhost plus camera support in this browser. Use the button below.');
+    return;
+  }
+  if(typeof window.jsQR !== 'function'){
+    setStatus('QR scanner library did not load. Use the button below.');
+    return;
+  }
   try{
-    const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720}}});
+    const stream = await getScanStream();
     const video = document.getElementById('scanvid');
     if(!video){ stream.getTracks().forEach(t=>t.stop()); return; }
+    video.setAttribute('playsinline', 'true');
     video.srcObject = stream;
     S.scanCtx = {stream};
     const canvas = document.getElementById('scancanvas');
@@ -1253,7 +1266,13 @@ async function openScan(tripId, locId){
     const expected = gateToken(locId);
     let scanActive = true;
     let lastMismatch = 0;
-    const setStatus = (msg) => { const el = document.getElementById('scanStatus'); if(el) el.textContent = msg; };
+    let started = false;
+    const startScanLoop = ()=>{
+      if(started || !scanActive) return;
+      started = true;
+      setStatus('Scanning... point at the gate QR code');
+      S.scanCtx.timer = requestAnimationFrame(tick);
+    };
     const tick = ()=>{
       if(!scanActive || !document.getElementById('scanModal')){
         scanActive = false;
@@ -1269,45 +1288,115 @@ async function openScan(tripId, locId){
           const code = jsQR(img.data, img.width, img.height);
           if(code && code.data){
             if(code.data.trim() === expected){
-              setStatus('✅ Gate verified — saving…');
+              setStatus('Gate verified - saving...');
               scanActive = false;
               closeScan();
               advanceTrip(tripId);
               return;
             } else {
               lastMismatch = Date.now();
-              setStatus('❌ Wrong QR — this is not the ' + escapeHtml(locName) + ' gate code');
+              setStatus('Wrong QR - this is not the ' + locName + ' gate code');
             }
           } else {
-            if(Date.now() - lastMismatch > 2000) setStatus('🔍 Scanning… point at the gate QR code');
+            if(Date.now() - lastMismatch > 2000) setStatus('Scanning... point at the gate QR code');
           }
         }catch(e){ console.error('jsQR error:', e); }
       } else {
-        setStatus('⏳ Camera starting…');
+        setStatus('Camera starting...');
       }
       S.scanCtx.timer = requestAnimationFrame(tick);
     };
-    video.addEventListener('loadedmetadata', ()=>{
+    const handleVideoReady = ()=>{
       video.play().then(()=>{
-        setStatus('🔍 Scanning… point at the gate QR code');
-        S.scanCtx.timer = requestAnimationFrame(tick);
+        startScanLoop();
       }).catch(e=>{
         setStatus('Camera error: ' + e.message + '. Use the button instead.');
       });
-    });
-    // Fallback: start tick after 1 second even if event doesn't fire
+    };
+    video.addEventListener('loadedmetadata', handleVideoReady, { once:true });
+    video.addEventListener('loadeddata', startScanLoop, { once:true });
+    video.addEventListener('canplay', startScanLoop, { once:true });
+    if(video.readyState >= 2) handleVideoReady();
     setTimeout(()=>{
-      if(scanActive && !S.scanCtx.timer) S.scanCtx.timer = requestAnimationFrame(tick);
+      if(scanActive && !started) startScanLoop();
     }, 1000);
   }catch(e){
     const statusEl = document.getElementById('scanStatus');
     if(statusEl){
-      if(e.name === 'NotAllowedError') statusEl.textContent = '🚫 Camera permission denied. Allow camera access in browser settings, then try again.';
-      else if(e.name === 'NotFoundError') statusEl.textContent = '🚫 No camera found on this device. Use the button below.';
-      else statusEl.textContent = '🚫 Camera unavailable (' + e.name + '). Use the button instead.';
+      if(e.name === 'NotAllowedError') statusEl.textContent = 'Camera permission denied. Allow camera access in browser settings, then try again.';
+      else if(e.name === 'NotFoundError') statusEl.textContent = 'No camera found on this device. Use the button below.';
+      else statusEl.textContent = 'Camera unavailable (' + e.name + '). Use the button below.';
     }
     console.error('Camera access error:', e);
   }
+}
+async function getScanStream(){
+  const attempts = [
+    { video:{ facingMode:{ ideal:'environment' }, width:{ ideal:1280 }, height:{ ideal:720 } } },
+    { video:{ facingMode:'environment' } },
+    { video:true }
+  ];
+  let lastError = null;
+  for(const constraints of attempts){
+    try{
+      return await navigator.mediaDevices.getUserMedia(constraints);
+    }catch(e){
+      lastError = e;
+    }
+  }
+  throw lastError || new Error('Camera unavailable');
+}
+async function handleScanImageUpload(event, tripId, locId){
+  const input = event.target;
+  const file = input && input.files && input.files[0];
+  if(!file) return;
+  const statusEl = document.getElementById('scanStatus');
+  const setStatus = (msg) => { if(statusEl) statusEl.textContent = msg; };
+  try{
+    setStatus('Reading QR photo...');
+    const image = await loadImageFromFile(file);
+    const canvas = document.getElementById('scancanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = image.naturalWidth || image.width;
+    canvas.height = image.naturalHeight || image.height;
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(img.data, img.width, img.height);
+    if(!code || !code.data){
+      setStatus('Could not read a QR code from that image. Try a clearer photo or use the button below.');
+      return;
+    }
+    const expected = gateToken(locId);
+    if(code.data.trim() !== expected){
+      setStatus('Wrong QR - this is not the ' + locationName(locId) + ' gate code');
+      return;
+    }
+    setStatus('Gate verified from photo - saving...');
+    closeScan();
+    await advanceTrip(tripId);
+  }catch(e){
+    setStatus('Could not process that image. Try another photo or use the button below.');
+    console.error('QR image scan error:', e);
+  }finally{
+    if(input) input.value = '';
+  }
+}
+function loadImageFromFile(file){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onerror = ()=> reject(new Error('Failed to read image file'));
+    reader.onload = ()=>{
+      const img = new Image();
+      img.onload = ()=> resolve(img);
+      img.onerror = ()=> reject(new Error('Failed to decode image file'));
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+async function confirmScannedGate(tripId){
+  closeScan();
+  await advanceTrip(tripId);
 }
 function closeScan(){
   if(S.scanCtx){ if(S.scanCtx.timer) cancelAnimationFrame(S.scanCtx.timer); if(S.scanCtx.stream) S.scanCtx.stream.getTracks().forEach(t=>t.stop()); S.scanCtx=null; }

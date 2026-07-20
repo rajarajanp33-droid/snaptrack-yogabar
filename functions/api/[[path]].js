@@ -8,6 +8,7 @@
 const STEP_KEYS = ['reached_source','loading_start','loading_end','departed','reached_destination','unloading_start','unloading_end'];
 const SOURCE_STEPS = ['reached_source','loading_start','loading_end','departed'];
 const DELAY_CHECK_STEP = { loading_end:'loading', reached_destination:'travel', unloading_end:'unloading' };
+const EXIT_GATE_STEP = 'exit_gate';
 
 function createDevDbAdapter(){
   if(globalThis.__snaptrackDevDb) return globalThis.__snaptrackDevDb;
@@ -116,8 +117,13 @@ function createDevDbAdapter(){
     if(q.startsWith('update trips set')){
       const trip = store.trips.find(r=>r.id===params[params.length-1]);
       if(trip){
-        const col = q.match(/update trips set ([a-z_]+)=\?/)[1];
-        trip[col] = params[0];
+        if(q.startsWith("update trips set status='completed', completed_at=?")){
+          trip.status = 'completed';
+          trip.completed_at = params[0];
+        }else{
+          const col = q.match(/update trips set ([a-z_]+)=\?/)[1];
+          trip[col] = params[0];
+        }
       }
       return { success:true };
     }
@@ -201,11 +207,15 @@ function tripRowToApi(r){
     sourceId:r.source_id, destId:r.dest_id, sourceName:r.source_name, destName:r.dest_name,
     status:r.status, createdAt:r.created_at, completedAt:r.completed_at,
     ts:{ reachedSource:r.reached_source, loadingStart:r.loading_start, loadingEnd:r.loading_end, departed:r.departed,
-         reachedDestination:r.reached_destination, unloadingStart:r.unloading_start, unloadingEnd:r.unloading_end }
+      reachedDestination:r.reached_destination, unloadingStart:r.unloading_start, unloadingEnd:r.unloading_end, exitGate:r.completed_at }
   };
 }
 function userRowSafe(r){ return { id:r.id, name:r.name, username:r.username, role:r.role, locationId:r.location_id, active:!!r.active }; }
-function nextStepKey(row){ for(const k of STEP_KEYS){ if(!row[k]) return k; } return null; }
+function nextStepKey(row){
+  for(const k of STEP_KEYS){ if(!row[k]) return k; }
+  if(row.unloading_end && !row.completed_at) return EXIT_GATE_STEP;
+  return null;
+}
 function stepLocationCol(key){ return SOURCE_STEPS.includes(key) ? 'source_id' : 'dest_id'; }
 
 // ============================================================
@@ -428,9 +438,13 @@ async function handleTripAdvance(tripId, request, env, user){
   if(user.role==='driver' && trip.driver_name !== user.name) return err('This is not your trip.', 403);
 
   const now = Date.now();
-  const isLast = key==='unloading_end';
-  await env.DB.prepare(`UPDATE trips SET ${key}=?${isLast?", status='completed', completed_at=?":''} WHERE id=? AND ${key} IS NULL`)
-    .bind(now, ...(isLast?[now]:[]), tripId).run();
+    if(key===EXIT_GATE_STEP){
+      await env.DB.prepare("UPDATE trips SET status='completed', completed_at=? WHERE id=? AND completed_at IS NULL")
+        .bind(now, tripId).run();
+    }else{
+      await env.DB.prepare(`UPDATE trips SET ${key}=? WHERE id=? AND ${key} IS NULL`)
+        .bind(now, tripId).run();
+    }
 
   const updated = await env.DB.prepare('SELECT * FROM trips WHERE id=?').bind(tripId).first();
   const segment = DELAY_CHECK_STEP[key];

@@ -551,6 +551,9 @@ let S = {
   deskLocationId: null,
   fleetFilter: { type: 'all' },
   notifiedDelays: new Set(), // tracks trip+flag combos already notified
+  notifiedTripEvents: new Set(), // tracks trip lifecycle event notifications already shown
+  tripEventSnapshot: new Map(),
+  tripSyncInFlight: false,
   vehFilter: { preset:'today', from:null, to:null, vehicleId:'all' },
   analyticsFilter: { preset:'today', from:null, to:null, vehicleId:'all' },
   reportsFilter: { preset:'today', from:null, to:null, vehicleId:'all' },
@@ -649,6 +652,7 @@ async function boot(){
   }
 
   S.trips = await loadAllTrips();
+  primeTripEventSnapshot();
   S.prefillUsername = lastUsername || '';
   S.lang = langPref || 'en';
   S.deskLocationId = (S.locations[0] && S.locations[0].id) || null;
@@ -2310,6 +2314,86 @@ function afterRenderHooks(){
   });
 }
 
+function primeTripEventSnapshot(){
+  const snap = new Map();
+  S.trips.forEach(trip=>{
+    snap.set(trip.id, {
+      unloadingEnd: trip.ts && trip.ts.unloadingEnd ? trip.ts.unloadingEnd : null,
+      exitGate: trip.ts && trip.ts.exitGate ? trip.ts.exitGate : (trip.completedAt || null)
+    });
+  });
+  S.tripEventSnapshot = snap;
+}
+
+function canReceiveTripEvent(eventType, trip){
+  if(!S.user || S.user.role==='driver') return false;
+  if(eventType==='unloadingEnd'){
+    return S.user.role==='operator' && S.user.locationId===trip.destId;
+  }
+  if(eventType==='exitGate'){
+    if(S.user.role==='manager') return true;
+    return S.user.role==='operator' && S.user.locationId===trip.destId;
+  }
+  return false;
+}
+
+function notifyTripEvent(eventType, trip, ts){
+  if(!canReceiveTripEvent(eventType, trip)) return;
+  if(!('Notification' in window) || Notification.permission !== 'granted') return;
+
+  const key = `${eventType}|${trip.id}|${ts||0}`;
+  if(S.notifiedTripEvents.has(key)) return;
+  S.notifiedTripEvents.add(key);
+
+  const title = eventType==='unloadingEnd' ? '📦 Unloading Completed' : '✅ Vehicle Released';
+  const body = eventType==='unloadingEnd'
+    ? `${trip.vehicleNumber} unloading completed at ${trip.destName}.`
+    : `${trip.vehicleNumber} released from ${trip.destName} exit gate.`;
+
+  try{
+    const n = new Notification(title, {
+      body,
+      tag: key,
+      requireInteraction: false
+    });
+    n.onclick = ()=>{ goView('deck'); n.close(); window.focus(); };
+  }catch(e){
+    console.warn('Trip event notification error:', e);
+  }
+}
+
+async function refreshTripsAndNotify(){
+  if(!S.user || !AUTH_TOKEN || S.tripSyncInFlight) return;
+  S.tripSyncInFlight = true;
+  try{
+    const latest = await loadAllTrips();
+    if(!Array.isArray(latest)) return;
+
+    const prev = S.tripEventSnapshot || new Map();
+    const next = new Map();
+
+    latest.forEach(trip=>{
+      const currUnloadingEnd = trip.ts && trip.ts.unloadingEnd ? trip.ts.unloadingEnd : null;
+      const currExitGate = trip.ts && trip.ts.exitGate ? trip.ts.exitGate : (trip.completedAt || null);
+      const prevSnap = prev.get(trip.id);
+
+      if(prevSnap){
+        if(!prevSnap.unloadingEnd && currUnloadingEnd) notifyTripEvent('unloadingEnd', trip, currUnloadingEnd);
+        if(!prevSnap.exitGate && currExitGate) notifyTripEvent('exitGate', trip, currExitGate);
+      }
+
+      next.set(trip.id, { unloadingEnd: currUnloadingEnd, exitGate: currExitGate });
+    });
+
+    S.trips = latest;
+    S.tripEventSnapshot = next;
+  }catch(e){
+    // Ignore transient poll errors; next interval will retry.
+  }finally{
+    S.tripSyncInFlight = false;
+  }
+}
+
 /* ========== DELAY NOTIFICATION ENGINE ========== */
 function checkAndNotifyDelays(){
   if(!S.user || S.user.role==='driver') return;
@@ -2348,8 +2432,9 @@ async function requestNotificationPermission(){
   }
 }
 
-setInterval(()=>{
+setInterval(async ()=>{
   if(!S.user) return;
+  await refreshTripsAndNotify();
   const dashLive = S.view==='dashboard' && S.dashFilter.preset==='today' && S.dashFilter.vehicleId==='all';
   if(S.view==='trip'||S.view==='deck'||dashLive||S.view==='alerts'||S.view==='fleetboard') render();
   checkAndNotifyDelays();

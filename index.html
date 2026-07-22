@@ -1938,7 +1938,7 @@ function renderReports(){
   </div>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>${tLine('thDate')}</th><th>${tLine('thVehicle')}</th><th>${tLine('thDriver')}</th><th>${tLine('thRoute')}</th><th>${tLine('thStatus')}</th><th>${tLine('loadingWord')}</th><th>${tLine('travelWord')}</th><th>${tLine('unloadingWord')}</th><th>${tLine('turnaroundTime')}</th><th>${tLine('thReason')}</th></tr></thead>
+      <thead><tr><th>${tLine('thDate')}</th><th>${tLine('thVehicle')}</th><th>${tLine('thDriver')}</th><th>${tLine('thRoute')}</th><th>${tLine('thStatus')}</th><th>${tLine('loadingWord')}</th><th>STN/DC</th><th>${tLine('travelWord')}</th><th>${tLine('unloadingWord')}</th><th>${tLine('turnaroundTime')}</th><th>${tLine('thReason')}</th></tr></thead>
       <tbody>
         ${tripsInRange(S.reportsFilter).sort((a,b)=>b.createdAt-a.createdAt).map(t=>{
           const m=tripMetrics(t);
@@ -1947,6 +1947,7 @@ function renderReports(){
             <td>${escapeHtml(t.sourceName)} → ${escapeHtml(t.destName)}</td>
             <td><span class="badge ${t.status==='completed'?'green':'amber'}">${t.status==='completed'?tLine('completedWord'):tLine('inProgress')}</span></td>
             <td class="mono">${fmtDur(m.loadingTime)}</td><td class="mono">${fmtDur(m.travelTime)}</td>
+            <td class="mono">${t.ts.productionEntryStart&&t.ts.productionEntryEnd?fmtDur(t.ts.productionEntryEnd-t.ts.productionEntryStart):'—'}</td>
             <td class="mono">${fmtDur(m.unloadingTime)}</td><td class="mono">${fmtDur(m.turnaround)}</td>
             <td>${reasons.length?reasons.map(r=>`<span class="badge red" style="margin-right:4px;">${escapeHtml(r)}</span>`).join(''):'—'}</td></tr>`;
         }).join('') || `<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:30px;">${tLine('noTripsYet')}</td></tr>`}
@@ -1973,8 +1974,8 @@ function exportPDF(){
   doc.setFontSize(14); doc.text('SnapTrack — Yogabar Logistics Trip Report ('+dateStamp()+')', 14, 14);
   doc.autoTable({
     startY:20, styles:{fontSize:7},
-    head:[['Date','Vehicle','Driver','From','To','Status','Loading(min)','Travel(min)','Unloading(min)','Turnaround(min)','Delay Reason']],
-    body: rows.map(r=>[r['Date'],r['Vehicle'],r['Driver'],r['From'],r['To'],r['Status'],r['Loading Time (min)'],r['Travel Time (min)'],r['Unloading Time (min)'],r['Turnaround (min)'],r['Delay Reason(s)']])
+    head:[['Date','Vehicle','Driver','From','To','Status','Loading(min)','Entry(min)','Travel(min)','Unloading(min)','Turnaround(min)','Delay Reason']],
+    body: rows.map(r=>[r['Date'],r['Vehicle'],r['Driver'],r['From'],r['To'],r['Status'],r['Loading Time (min)'],(r['STN/DC/Production Entry Started']&&r['STN/DC/Production Entry Completed'])?''+Math.round((new Date(r['STN/DC/Production Entry Completed']).getTime()-new Date(r['STN/DC/Production Entry Started']).getTime())/60000):'',r['Travel Time (min)'],r['Unloading Time (min)'],r['Turnaround (min)'],r['Delay Reason(s)']])
   });
   doc.save(`snaptrack-trips-${dateStamp()}.pdf`);
 }

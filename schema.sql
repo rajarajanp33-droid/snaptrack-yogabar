@@ -58,6 +58,8 @@ CREATE TABLE IF NOT EXISTS trips (
   reached_source INTEGER,
   loading_start INTEGER,
   loading_end INTEGER,
+  production_entry_start INTEGER,
+  production_entry_end INTEGER,
   departed INTEGER,
   reached_destination INTEGER,
   unloading_start INTEGER,

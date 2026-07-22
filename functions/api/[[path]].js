@@ -5,8 +5,8 @@
 //           and an environment variable AUTH_SECRET (any long random string).
 // ============================================================
 
-const STEP_KEYS = ['reached_source','loading_start','loading_end','departed','reached_destination','unloading_start','unloading_end'];
-const SOURCE_STEPS = ['reached_source','loading_start','loading_end','departed'];
+const STEP_KEYS = ['reached_source','loading_start','loading_end','production_entry_start','production_entry_end','departed','reached_destination','unloading_start','unloading_end'];
+const SOURCE_STEPS = ['reached_source','loading_start','loading_end','production_entry_start','production_entry_end','departed'];
 const DELAY_CHECK_STEP = { loading_end:'loading', reached_destination:'travel', unloading_end:'unloading' };
 const EXIT_GATE_STEP = 'exit_gate';
 
@@ -97,7 +97,7 @@ function createDevDbAdapter(){
     if(q.startsWith('insert into trips')){
       const row = {
         id: params[0], vehicle_id: params[1], vehicle_number: params[2], driver_name: params[3], created_by: params[4],
-        source_id: params[5], dest_id: params[6], source_name: params[7], dest_name: params[8], status: params[9], created_at: params[10], completed_at: params[11], reached_source: params[12], loading_start: null, loading_end: null, departed: null, reached_destination: null, unloading_start: null, unloading_end: null
+        source_id: params[5], dest_id: params[6], source_name: params[7], dest_name: params[8], status: params[9], created_at: params[10], completed_at: params[11], reached_source: params[12], loading_start: null, loading_end: null, production_entry_start: null, production_entry_end: null, departed: null, reached_destination: null, unloading_start: null, unloading_end: null
       };
       store.trips.push(row); return { success:true };
     }
@@ -206,8 +206,10 @@ function tripRowToApi(r){
     id:r.id, vehicleId:r.vehicle_id, vehicleNumber:r.vehicle_number, driverName:r.driver_name, createdBy:r.created_by,
     sourceId:r.source_id, destId:r.dest_id, sourceName:r.source_name, destName:r.dest_name,
     status:r.status, createdAt:r.created_at, completedAt:r.completed_at,
-    ts:{ reachedSource:r.reached_source, loadingStart:r.loading_start, loadingEnd:r.loading_end, departed:r.departed,
-      reachedDestination:r.reached_destination, unloadingStart:r.unloading_start, unloadingEnd:r.unloading_end, exitGate:r.completed_at }
+    ts:{ reachedSource:r.reached_source, loadingStart:r.loading_start, loadingEnd:r.loading_end,
+      productionEntryStart:r.production_entry_start, productionEntryEnd:r.production_entry_end,
+      departed:r.departed, reachedDestination:r.reached_destination, unloadingStart:r.unloading_start,
+      unloadingEnd:r.unloading_end, exitGate:r.completed_at }
   };
 }
 function userRowSafe(r){ return { id:r.id, name:r.name, username:r.username, role:r.role, locationId:r.location_id, active:!!r.active }; }

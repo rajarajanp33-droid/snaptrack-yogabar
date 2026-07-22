@@ -243,17 +243,19 @@ video#scanvid{width:100%;border-radius:12px;background:#000;}
    access out of a warehouse tablet, not for anything sensitive.
    ============================================================ */
 
-const STEP_KEYS = ['reachedSource','loadingStart','loadingEnd','departed','reachedDestination','unloadingStart','unloadingEnd','exitGate'];
+const STEP_KEYS = ['reachedSource','loadingStart','loadingEnd','productionEntryStart','productionEntryEnd','departed','reachedDestination','unloadingStart','unloadingEnd','exitGate'];
 const STEP_LABEL = {
   reachedSource:'Reached Source', loadingStart:'Begin Loading', loadingEnd:'Loading Completed',
+  productionEntryStart:'STN/DC/Production Entry Started', productionEntryEnd:'STN/DC/Production Entry Completed',
   departed:'Departed', reachedDestination:'Reached Destination', unloadingStart:'Begin Unloading',
   unloadingEnd:'Unloading Completed', exitGate:'Exited Destination Gate'
 };
-const SOURCE_STEPS = ['reachedSource','loadingStart','loadingEnd','departed'];
+const SOURCE_STEPS = ['reachedSource','loadingStart','loadingEnd','productionEntryStart','productionEntryEnd','departed'];
 const DEST_STEPS = ['reachedDestination','unloadingStart','unloadingEnd','exitGate'];
 const TRANSIT_STEPS = ['departed'];
 const STEP_LABEL_KEY = {
   reachedSource:'stepReachedSource', loadingStart:'stepLoadingStart', loadingEnd:'stepLoadingEnd',
+  productionEntryStart:'stepProductionEntryStart', productionEntryEnd:'stepProductionEntryEnd',
   departed:'stepDeparted', reachedDestination:'stepReachedDestination',
   unloadingStart:'stepUnloadingStart', unloadingEnd:'stepUnloadingEnd', exitGate:'stepExitGate'
 };
@@ -283,6 +285,7 @@ en:{
  navFleet:"Fleet Status", navDeck:"Trip Desk", navDashboard:"Dashboard", navVehicles:"Vehicles", navAnalytics:"Analytics",
  navAlerts:"Alerts", navReports:"Reports", navAdmin:"Admin", navTrip:"My Trip",
  stepReachedSource:"Arrived at Source Gate", stepLoadingStart:"Loading Started", stepLoadingEnd:"Loading Done — Ready to Go",
+ stepProductionEntryStart:"STN/DC/Production Entry Started", stepProductionEntryEnd:"STN/DC/Production Entry Completed",
  stepDeparted:"Left Gate — On the Road", stepReachedDestination:"Arrived at Warehouse Gate",
  stepUnloadingStart:"Unloading Started", stepUnloadingEnd:"Unloading Done",
  stepExitGate:"Confirm Exit Gate — Trip Complete",
@@ -301,7 +304,7 @@ en:{
  deskDepartingFromHere:"Departing From Here", deskNothingDeparting:"Nothing waiting to depart from here right now.",
  deskArrivingHere:"Arriving Here", deskNothingArriving:"Nothing inbound to this location right now.",
  deskCompletedToday:"Completed Today Here", thVehicle:"Vehicle", thRoute:"Route", thDriver:"Driver",
- thClosed:"Closed", stepOf:"step {n} of 8",
+ thClosed:"Closed", stepOf:"step {n} of 10",
  dashToday:"Today", statTotalTrips:"Total Trips", statAvgLoading:"Avg Loading Time",
  statAvgTravel:"Avg Travel Time", statAvgUnloading:"Avg Unloading Time", statUtilization:"Vehicle Utilization",
  statLongestDelay:"Longest Delay", statFastestTrip:"Fastest Trip", liveFleetStatus:"Live Fleet Status",
@@ -345,6 +348,7 @@ hi:{
  navFleet:"फ्लीट स्थिति", navDeck:"ट्रिप डेस्क", navDashboard:"डैशबोर्ड", navVehicles:"वाहन", navAnalytics:"विश्लेषण",
  navAlerts:"अलर्ट", navReports:"रिपोर्ट", navAdmin:"एडमिन", navTrip:"मेरी ट्रिप",
  stepReachedSource:"फैक्ट्री गेट पर पहुंचे", stepLoadingStart:"लोडिंग शुरू हुई", stepLoadingEnd:"लोडिंग पूरी — चलने के लिए तैयार",
+ stepProductionEntryStart:"STN/DC/Production Entry शुरू", stepProductionEntryEnd:"STN/DC/Production Entry पूरी",
  stepDeparted:"गेट से निकले — रास्ते पर", stepReachedDestination:"वेयरहाउस गेट पर पहुंचे",
  stepUnloadingStart:"अनलोडिंग शुरू हुई", stepUnloadingEnd:"अनलोडिंग पूरी",
  stepExitGate:"वेयरहाउस एग्जिट गेट कन्फर्म करें — ट्रिप खत्म",
@@ -363,7 +367,7 @@ hi:{
  deskDepartingFromHere:"यहाँ से रवाना होने वाले", deskNothingDeparting:"अभी यहाँ से रवाना होने के लिए कोई वाहन नहीं है।",
  deskArrivingHere:"यहाँ आने वाले", deskNothingArriving:"अभी इस स्थान पर आने वाला कोई वाहन नहीं है।",
  deskCompletedToday:"आज यहाँ पूर्ण हुई", thVehicle:"वाहन", thRoute:"मार्ग", thDriver:"ड्राइवर",
- thClosed:"बंद हुई", stepOf:"चरण {n} / 8",
+ thClosed:"बंद हुई", stepOf:"चरण {n} / 10",
  dashToday:"आज", statTotalTrips:"कुल ट्रिप", statAvgLoading:"औसत लोडिंग समय",
  statAvgTravel:"औसत यात्रा समय", statAvgUnloading:"औसत अनलोडिंग समय", statUtilization:"वाहन उपयोग",
  statLongestDelay:"सबसे लंबी देरी", statFastestTrip:"सबसे तेज़ ट्रिप", liveFleetStatus:"लाइव फ्लीट स्थिति",
@@ -407,6 +411,7 @@ kn:{
  navFleet:"ಫ್ಲೀಟ್ ಸ್ಥಿತಿ", navDeck:"ಟ್ರಿಪ್ ಡೆಸ್ಕ್", navDashboard:"ಡ್ಯಾಶ್‌ಬೋರ್ಡ್", navVehicles:"ವಾಹನಗಳು", navAnalytics:"ವಿಶ್ಲೇಷಣೆ",
  navAlerts:"ಎಚ್ಚರಿಕೆಗಳು", navReports:"ವರದಿಗಳು", navAdmin:"ಅಡ್ಮಿನ್", navTrip:"ನನ್ನ ಟ್ರಿಪ್",
  stepReachedSource:"ಫ್ಯಾಕ್ಟರಿ ಗೇಟ್ ತಲುಪಿದೆ", stepLoadingStart:"ಲೋಡಿಂಗ್ ಶುರುವಾಯಿತು", stepLoadingEnd:"ಲೋಡಿಂಗ್ ಮುಗಿದಿದೆ — ಹೊರಡಲು ಸಿದ್ಧ",
+ stepProductionEntryStart:"STN/DC/Production Entry ಆರಂಭವಾಯಿತು", stepProductionEntryEnd:"STN/DC/Production Entry ಪೂರ್ಣವಾಯಿತು",
  stepDeparted:"ಗೇಟ್ ಬಿಟ್ಟು ಹೊರಟಿದೆ", stepReachedDestination:"ವೇರ್‌ಹೌಸ್ ಗೇಟ್ ತಲುಪಿದೆ",
  stepUnloadingStart:"ಅನ್‌ಲೋಡಿಂಗ್ ಶುರುವಾಯಿತು", stepUnloadingEnd:"ಅನ್‌ಲೋಡಿಂಗ್ ಮುಗಿದಿದೆ",
  stepExitGate:"ಎಕ್ಸಿಟ್ ಗೇಟ್ ದೃಢೀಕರಿಸಿ — ಟ್ರಿಪ್ ಮುಗಿದಿದೆ",
@@ -425,7 +430,7 @@ kn:{
  deskDepartingFromHere:"ಇಲ್ಲಿಂದ ಹೊರಡುವವು", deskNothingDeparting:"ಈಗ ಇಲ್ಲಿಂದ ಹೊರಡಲು ಯಾವುದೇ ವಾಹನ ಇಲ್ಲ.",
  deskArrivingHere:"ಇಲ್ಲಿಗೆ ಬರುವವು", deskNothingArriving:"ಈಗ ಈ ಸ್ಥಳಕ್ಕೆ ಬರುತ್ತಿರುವ ಯಾವುದೇ ವಾಹನ ಇಲ್ಲ.",
  deskCompletedToday:"ಇಂದು ಇಲ್ಲಿ ಪೂರ್ಣಗೊಂಡವು", thVehicle:"ವಾಹನ", thRoute:"ಮಾರ್ಗ", thDriver:"ಡ್ರೈವರ್",
- thClosed:"ಮುಗಿದ ಸಮಯ", stepOf:"ಹಂತ {n} / 8",
+ thClosed:"ಮುಗಿದ ಸಮಯ", stepOf:"ಹಂತ {n} / 10",
  dashToday:"ಇಂದು", statTotalTrips:"ಒಟ್ಟು ಟ್ರಿಪ್‌ಗಳು", statAvgLoading:"ಸರಾಸರಿ ಲೋಡಿಂಗ್ ಸಮಯ",
  statAvgTravel:"ಸರಾಸರಿ ಪ್ರಯಾಣ ಸಮಯ", statAvgUnloading:"ಸರಾಸರಿ ಅನ್‌ಲೋಡಿಂಗ್ ಸಮಯ", statUtilization:"ವಾಹನ ಬಳಕೆ",
  statLongestDelay:"ಅತಿ ಹೆಚ್ಚು ವಿಳಂಬ", statFastestTrip:"ಅತಿ ವೇಗದ ಟ್ರಿಪ್", liveFleetStatus:"ಲೈವ್ ಫ್ಲೀಟ್ ಸ್ಥಿತಿ",
@@ -469,6 +474,7 @@ ta:{
  navFleet:"கப்பற்றுநர் நிலை", navDeck:"டிரிப் டெஸ்க்", navDashboard:"டாஷ்போர்டு", navVehicles:"வாகனங்கள்", navAnalytics:"பகுப்பாய்வு",
  navAlerts:"எச்சரிக்கைகள்", navReports:"அறிக்கைகள்", navAdmin:"நிர்வாகி", navTrip:"எனது டிரிப்",
  stepReachedSource:"தொழிற்சாலை வாயிலை அடைந்தது", stepLoadingStart:"ஏற்றுதல் தொடங்கியது", stepLoadingEnd:"ஏற்றுதல் முடிந்தது — கிளம்ப தயார்",
+ stepProductionEntryStart:"STN/DC/Production Entry தொடங்கியது", stepProductionEntryEnd:"STN/DC/Production Entry முடிந்தது",
  stepDeparted:"வாயில் விட்டு கிளம்பியது", stepReachedDestination:"கிடங்கு வாயிலை அடைந்தது",
  stepUnloadingStart:"இறக்குதல் தொடங்கியது", stepUnloadingEnd:"இறக்குதல் முடிந்தது",
  stepExitGate:"வெளியேறும் வாயிலை உறுதிப்படுத்து — டிரிப் முடிந்தது",
@@ -487,7 +493,7 @@ ta:{
  deskDepartingFromHere:"இங்கிருந்து புறப்படுபவை", deskNothingDeparting:"இப்போது இங்கிருந்து புறப்பட காத்திருக்கும் வாகனம் இல்லை.",
  deskArrivingHere:"இங்கு வருபவை", deskNothingArriving:"இப்போது இந்த இடத்திற்கு வரும் வாகனம் இல்லை.",
  deskCompletedToday:"இன்று இங்கு முடிந்தவை", thVehicle:"வாகனம்", thRoute:"பாதை", thDriver:"ஓட்டுநர்",
- thClosed:"முடிந்த நேரம்", stepOf:"படி {n} / 8",
+ thClosed:"முடிந்த நேரம்", stepOf:"படி {n} / 10",
  dashToday:"இன்று", statTotalTrips:"மொத்த டிரிப்கள்", statAvgLoading:"சராசரி ஏற்றுதல் நேரம்",
  statAvgTravel:"சராசரி பயண நேரம்", statAvgUnloading:"சராசரி இறக்குதல் நேரம்", statUtilization:"வாகன பயன்பாடு",
  statLongestDelay:"மிக நீண்ட தாமதம்", statFastestTrip:"மிக வேகமான டிரிப்", liveFleetStatus:"நேரடி வாகனத் திரள் நிலை",
@@ -1089,7 +1095,7 @@ async function startTrip(){
     id: uid('trip'), vehicleId, vehicleNumber: vehicleNumber(vehicleId), driverName: S.user.name, createdBy:S.user.username,
     sourceId, destId, sourceName: locationName(sourceId), destName: locationName(destId),
     status:'in_progress', createdAt: Date.now(),
-    ts: {reachedSource:null,loadingStart:null,loadingEnd:null,departed:null,reachedDestination:null,unloadingStart:null,unloadingEnd:null,exitGate:null}
+    ts: {reachedSource:null,loadingStart:null,loadingEnd:null,productionEntryStart:null,productionEntryEnd:null,departed:null,reachedDestination:null,unloadingStart:null,unloadingEnd:null,exitGate:null}
   };
   try{
     await createTripPersisted(trip);
@@ -1484,7 +1490,7 @@ async function logArrival(sourceId){
     driverName: (driverName||'').trim() || '(not recorded)', createdBy: S.user.username,
     sourceId, destId, sourceName: locationName(sourceId), destName: locationName(destId),
     status:'in_progress', createdAt: Date.now(),
-    ts: {reachedSource:Date.now(),loadingStart:null,loadingEnd:null,departed:null,reachedDestination:null,unloadingStart:null,unloadingEnd:null,exitGate:null}
+    ts: {reachedSource:Date.now(),loadingStart:null,loadingEnd:null,productionEntryStart:null,productionEntryEnd:null,departed:null,reachedDestination:null,unloadingStart:null,unloadingEnd:null,exitGate:null}
   };
   try{
     await createTripPersisted(trip);
@@ -1900,6 +1906,8 @@ function reportRows(){
       'Reached Source': t.ts.reachedSource?new Date(t.ts.reachedSource).toLocaleString('en-IN'):'',
       'Loading Started': t.ts.loadingStart?new Date(t.ts.loadingStart).toLocaleString('en-IN'):'',
       'Loading Completed': t.ts.loadingEnd?new Date(t.ts.loadingEnd).toLocaleString('en-IN'):'',
+      'STN/DC/Production Entry Started': t.ts.productionEntryStart?new Date(t.ts.productionEntryStart).toLocaleString('en-IN'):'',
+      'STN/DC/Production Entry Completed': t.ts.productionEntryEnd?new Date(t.ts.productionEntryEnd).toLocaleString('en-IN'):'',
       'Departed': t.ts.departed?new Date(t.ts.departed).toLocaleString('en-IN'):'',
       'Reached Destination': t.ts.reachedDestination?new Date(t.ts.reachedDestination).toLocaleString('en-IN'):'',
       'Unloading Started': t.ts.unloadingStart?new Date(t.ts.unloadingStart).toLocaleString('en-IN'):'',

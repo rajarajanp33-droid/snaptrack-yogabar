@@ -716,11 +716,18 @@ async function ensurePushSubscription(){
   const reg = await ensureServiceWorkerRegistration();
   if(!reg || !reg.pushManager) return false;
 
+  const keyResp = await apiRequest('push/public-key', { auth:true }).catch(()=>null);
+  const vapidKey = keyResp && keyResp.publicKey ? keyResp.publicKey : '';
+  if(!vapidKey) return false;
+
   let sub = await reg.pushManager.getSubscription();
+  const cachedKey = localStorage.getItem('snaptrack_vapid_public') || '';
+  if(sub && cachedKey !== vapidKey){
+    try{ await sub.unsubscribe(); }catch(e){}
+    sub = null;
+  }
+
   if(!sub){
-    const keyResp = await apiRequest('push/public-key', { auth:true }).catch(()=>null);
-    const vapidKey = keyResp && keyResp.publicKey ? keyResp.publicKey : '';
-    if(!vapidKey) return false;
     sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: base64UrlToUint8Array(vapidKey)
@@ -736,6 +743,7 @@ async function ensurePushSubscription(){
     }
   }).catch(()=>null);
 
+  localStorage.setItem('snaptrack_vapid_public', vapidKey);
   PUSH_SUBSCRIPTION_READY = true;
   return true;
 }

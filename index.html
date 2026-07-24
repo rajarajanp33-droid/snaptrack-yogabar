@@ -592,6 +592,8 @@ const DELAY_CHECK_STEP = { loadingEnd:'loading', reachedDestination:'travel', un
 /* ---------------- storage helpers ---------------- */
 const API_BASE = '/api';
 let AUTH_TOKEN = sessionStorage.getItem('snaptrack_token') || null;
+let SW_REGISTRATION = null;
+let SW_MESSAGE_BOUND = false;
 
 function getStoredToken(){
   return sessionStorage.getItem('snaptrack_token') || localStorage.getItem('snaptrack_token') || null;
@@ -637,6 +639,8 @@ function simpleHash(str){
 }
 
 async function boot(){
+  ensureServiceWorkerRegistration();
+  bindServiceWorkerMessages();
   AUTH_TOKEN = getStoredToken();
   const [bootData, lastUsername, langPref] = await Promise.all([
     AUTH_TOKEN ? apiRequest('bootstrap', { auth:true }).catch(()=>null) : Promise.resolve(null),
@@ -673,7 +677,37 @@ async function boot(){
   S.lang = langPref || 'en';
   S.deskLocationId = (S.locations[0] && S.locations[0].id) || null;
   S.loaded = true;
+
+  const requestedView = new URL(location.href).searchParams.get('view');
+  if(requestedView && S.user && ['alerts','deck','dashboard','fleetboard','trip','vehicles','analytics','reports','admin'].includes(requestedView)){
+    S.view = requestedView;
+  }
+
   render();
+}
+
+async function ensureServiceWorkerRegistration(){
+  if(!window.isSecureContext || !('serviceWorker' in navigator)) return null;
+  if(SW_REGISTRATION) return SW_REGISTRATION;
+  try{
+    SW_REGISTRATION = await navigator.serviceWorker.register('/sw.js');
+    return SW_REGISTRATION;
+  }catch(e){
+    return null;
+  }
+}
+
+function bindServiceWorkerMessages(){
+  if(SW_MESSAGE_BOUND || !('serviceWorker' in navigator)) return;
+  SW_MESSAGE_BOUND = true;
+  navigator.serviceWorker.addEventListener('message', ev=>{
+    const data = ev && ev.data ? ev.data : null;
+    if(!data || data.type!=='snaptrack-open-view') return;
+    if(data.view && S.user){
+      S.view = data.view;
+      render();
+    }
+  });
 }
 
 function monthKeyOf(ts){ return new Date(ts).getFullYear()+'-'+String(new Date(ts).getMonth()+1).padStart(2,'0'); }
@@ -2379,8 +2413,19 @@ function openInAppAlert(id){
 
 function trySystemNotification(title, options, onClick){
   if(!('Notification' in window) || Notification.permission !== 'granted') return false;
+  const payload = {
+    ...(options||{}),
+    data: {
+      ...((options && options.data) ? options.data : {}),
+      url: '/'
+    }
+  };
+  if(SW_REGISTRATION && typeof SW_REGISTRATION.showNotification==='function'){
+    SW_REGISTRATION.showNotification(title, payload).catch(()=>{});
+    return true;
+  }
   try{
-    const n = new Notification(title, options || {});
+    const n = new Notification(title, payload);
     if(onClick) n.onclick = onClick;
     return true;
   }catch(e){
@@ -2417,7 +2462,8 @@ function notifyTripEvent(eventType, trip, ts){
   const sent = trySystemNotification(title, {
     body,
     tag: key,
-    requireInteraction: false
+    requireInteraction: false,
+    data:{ targetView:'deck' }
   }, ()=>{ goView('deck'); window.focus(); });
 
   // Mobile browsers often suppress system notifications while app is active.
@@ -2480,7 +2526,8 @@ function checkAndNotifyDelays(){
           body,
           icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="%23F0603E"/><text x="16" y="21" text-anchor="middle" fill="white" font-size="18">⚠</text></svg>',
           tag: key,
-          requireInteraction: false
+          requireInteraction: false,
+          data:{ targetView:'alerts' }
         }, ()=>{ goView('alerts'); window.focus(); });
         if(isMobileClient() || !sent){
           pushInAppAlert(title, body, 'alerts');
@@ -2490,6 +2537,7 @@ function checkAndNotifyDelays(){
   });
 }
 async function requestNotificationPermission(){
+  await ensureServiceWorkerRegistration();
   if(!('Notification' in window)) return;
   if(Notification.permission === 'granted') return;
   if(Notification.permission !== 'denied'){

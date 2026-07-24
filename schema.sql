@@ -81,6 +81,19 @@ CREATE TABLE IF NOT EXISTS trip_delays (
 );
 CREATE INDEX IF NOT EXISTS idx_delays_trip ON trip_delays(trip_id);
 
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  endpoint TEXT NOT NULL UNIQUE,
+  p256dh TEXT NOT NULL,
+  auth TEXT NOT NULL,
+  ua TEXT,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);
+CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id);
+
 -- Seed data — same defaults the Claude-hosted version shipped with.
 -- Delete or edit these rows freely once you're on the new backend.
 INSERT OR IGNORE INTO vehicles (id, number, active) VALUES

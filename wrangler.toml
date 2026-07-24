@@ -1,9 +1,13 @@
 name = "snaptrack-yogabar-logistics"
 compatibility_date = "2026-07-18"
+compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "."
 
 [vars]
 AUTH_SECRET = "snaptrack_prod_auth_secret_pk_2026_yogabar_logistics_b8d3c4f5e9a1"
+VAPID_SUBJECT = "mailto:ops@yogabar.in"
+VAPID_PUBLIC_KEY = "BLmjP047G4l5BLwHZnwp5t26YWif66V2WtuL_laai8JvzBVfLXVel5M90n5FUrzOppMafzKqY8Z_Y8W3FXpSk3E"
+VAPID_PRIVATE_KEY = "mxTOGfvJWBRyCa1vSk_DHWtVygi0Au2ywccn8RNEYus"
 
 [[d1_databases]]
 binding = "DB"

@@ -29,3 +29,24 @@ self.addEventListener('notificationclick', event => {
     await self.clients.openWindow(openUrl);
   })());
 });
+
+self.addEventListener('push', event => {
+  const payload = (() => {
+    try { return event.data ? event.data.json() : {}; }
+    catch(e){ return {}; }
+  })();
+
+  const title = payload.title || 'SnapTrack Alert';
+  const body = payload.body || 'You have a new update.';
+  const targetView = payload.targetView || 'alerts';
+  const tag = payload.tag || `snaptrack-${Date.now()}`;
+
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      tag,
+      data: { targetView },
+      requireInteraction: false
+    })
+  );
+});

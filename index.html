@@ -594,6 +594,7 @@ const API_BASE = '/api';
 let AUTH_TOKEN = sessionStorage.getItem('snaptrack_token') || null;
 let SW_REGISTRATION = null;
 let SW_MESSAGE_BOUND = false;
+let PUSH_SUBSCRIPTION_READY = false;
 
 function getStoredToken(){
   return sessionStorage.getItem('snaptrack_token') || localStorage.getItem('snaptrack_token') || null;
@@ -695,6 +696,48 @@ async function ensureServiceWorkerRegistration(){
   }catch(e){
     return null;
   }
+}
+
+function base64UrlToUint8Array(base64String){
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for(let i=0;i<rawData.length;i++) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+async function ensurePushSubscription(){
+  if(PUSH_SUBSCRIPTION_READY) return true;
+  if(!S.user || S.user.role==='driver') return false;
+  if(!window.isSecureContext || !('PushManager' in window)) return false;
+  if(!('Notification' in window) || Notification.permission !== 'granted') return false;
+
+  const reg = await ensureServiceWorkerRegistration();
+  if(!reg || !reg.pushManager) return false;
+
+  let sub = await reg.pushManager.getSubscription();
+  if(!sub){
+    const keyResp = await apiRequest('push/public-key', { auth:true }).catch(()=>null);
+    const vapidKey = keyResp && keyResp.publicKey ? keyResp.publicKey : '';
+    if(!vapidKey) return false;
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: base64UrlToUint8Array(vapidKey)
+    });
+  }
+
+  await apiRequest('push/subscribe', {
+    method:'POST',
+    auth:true,
+    body:{
+      subscription: sub.toJSON(),
+      ua: navigator.userAgent || ''
+    }
+  }).catch(()=>null);
+
+  PUSH_SUBSCRIPTION_READY = true;
+  return true;
 }
 
 function bindServiceWorkerMessages(){
@@ -2539,9 +2582,13 @@ function checkAndNotifyDelays(){
 async function requestNotificationPermission(){
   await ensureServiceWorkerRegistration();
   if(!('Notification' in window)) return;
-  if(Notification.permission === 'granted') return;
+  if(Notification.permission === 'granted'){
+    ensurePushSubscription();
+    return;
+  }
   if(Notification.permission !== 'denied'){
-    await Notification.requestPermission();
+    const perm = await Notification.requestPermission();
+    if(perm === 'granted') ensurePushSubscription();
   }
 }
 

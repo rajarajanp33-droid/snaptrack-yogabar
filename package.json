@@ -1,0 +1,24 @@
+{
+  "name": "snaptrack-project",
+  "version": "1.0.0",
+  "description": "SnapTrack logistics tracking app with Cloudflare Pages Functions, D1, and web push notifications.",
+  "main": "sw.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rajarajanp33-droid/snaptrack-yogabar.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/rajarajanp33-droid/snaptrack-yogabar/issues"
+  },
+  "homepage": "https://github.com/rajarajanp33-droid/snaptrack-yogabar#readme",
+  "dependencies": {
+    "web-push": "^3.6.7"
+  }
+}

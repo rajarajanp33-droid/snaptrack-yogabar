@@ -5,6 +5,8 @@
 //           and an environment variable AUTH_SECRET (any long random string).
 // ============================================================
 
+import webpush from 'web-push';
+
 const STEP_KEYS = ['reached_source','loading_start','loading_end','production_entry_start','production_entry_end','departed','reached_destination','unloading_start','unloading_end'];
 const SOURCE_STEPS = ['reached_source','loading_start','loading_end','production_entry_start','production_entry_end','departed'];
 const DELAY_CHECK_STEP = { loading_end:'loading', reached_destination:'travel', unloading_end:'unloading' };
@@ -37,7 +39,8 @@ function createDevDbAdapter(){
     users: [],
     settings: [{ id:1, expected_loading:30, expected_unloading:25, expected_travel:60, workday_hours:10 }],
     trips: [],
-    trip_delays: []
+    trip_delays: [],
+    push_subscriptions: []
   };
   class DevStatement {
     constructor(query, store){ this.query=query.trim(); this.store=store; this.params=[]; }
@@ -67,6 +70,16 @@ function createDevDbAdapter(){
     if(q.includes('select name from locations where id=?')) return store.locations.find(r=>r.id===params[0]) || null;
     if(q.includes('select label from delay_reasons where id=?')) return store.delay_reasons.find(r=>r.id===params[0]) || null;
     if(q.includes('select id from trip_delays where trip_id=? and segment=?')) return store.trip_delays.find(r=>r.trip_id===params[0] && r.segment===params[1]) || null;
+    if(q.includes('select * from push_subscriptions where user_id=?')) return { results: store.push_subscriptions.filter(r=>r.user_id===params[0]) };
+    if(q.includes('select * from push_subscriptions where endpoint=?')) return store.push_subscriptions.find(r=>r.endpoint===params[0]) || null;
+    if(q.includes('select ps.*, u.role, u.location_id, u.active from push_subscriptions ps join users u on u.id = ps.user_id')){
+      return {
+        results: store.push_subscriptions.map(ps=>{
+          const u = store.users.find(user=>user.id===ps.user_id) || {};
+          return { ...ps, role:u.role, location_id:u.location_id, active:u.active };
+        })
+      };
+    }
     if(q.includes('select * from trips where created_at between ? and ? and vehicle_id=?')){
       let rows = store.trips.filter(r=>r.created_at>=Number(params[0]) && r.created_at<=Number(params[1]) && r.vehicle_id===params[2]);
       if(q.includes('order by created_at desc')) rows = rows.sort((a,b)=>b.created_at-a.created_at);
@@ -104,6 +117,12 @@ function createDevDbAdapter(){
     if(q.startsWith('insert into trip_delays')){
       store.trip_delays.push({ id: params[0], trip_id: params[1], segment: params[2], reason_id: params[3], reason_label: params[4], remarks: params[5], captured_at: params[6] }); return { success:true };
     }
+    if(q.startsWith('insert into push_subscriptions')){
+      store.push_subscriptions.push({
+        id: params[0], user_id: params[1], endpoint: params[2], p256dh: params[3], auth: params[4], ua: params[5], created_at: params[6], updated_at: params[7]
+      });
+      return { success:true };
+    }
     if(q.startsWith('update settings set')){
       const row = store.settings.find(r=>r.id===1); if(row){ Object.assign(row, { expected_loading: params[0], expected_unloading: params[1], expected_travel: params[2], workday_hours: params[3] }); }
       return { success:true };
@@ -129,6 +148,16 @@ function createDevDbAdapter(){
     }
     if(q.startsWith('delete from trip_delays where trip_id=? and segment=?')){
       store.trip_delays = store.trip_delays.filter(r=>!(r.trip_id===params[0] && r.segment===params[1])); return { success:true };
+    }
+    if(q.startsWith('delete from push_subscriptions where endpoint=?')){
+      store.push_subscriptions = store.push_subscriptions.filter(r=>r.endpoint!==params[0]); return { success:true };
+    }
+    if(q.startsWith('update push_subscriptions set user_id=?, p256dh=?, auth=?, ua=?, updated_at=? where endpoint=?')){
+      const row = store.push_subscriptions.find(r=>r.endpoint===params[5]);
+      if(row){
+        row.user_id = params[0]; row.p256dh = params[1]; row.auth = params[2]; row.ua = params[3]; row.updated_at = params[4];
+      }
+      return { success:true };
     }
     if(q.startsWith('delete from')){
       const table = q.split('delete from ')[1].split(' where ')[0];
@@ -242,6 +271,9 @@ export async function onRequest(context){
     if(!user) return err('Not authenticated', 401);
 
     if(method==='GET' && path==='bootstrap') return await handleBootstrap(env, user);
+    if(method==='GET' && path==='push/public-key') return await handlePushPublicKey(env, user);
+    if(method==='POST' && path==='push/subscribe') return await handlePushSubscribe(request, env, user);
+    if(method==='POST' && path==='push/unsubscribe') return await handlePushUnsubscribe(request, env, user);
     if(method==='GET' && path==='trips') return await handleTripsList(url, env);
     if(method==='POST' && path==='trips') return await handleTripCreate(request, env, user);
     if(method==='POST' && segs[0]==='trips' && segs[2]==='advance') return await handleTripAdvance(segs[1], request, env, user);
@@ -449,6 +481,24 @@ async function handleTripAdvance(tripId, request, env, user){
     }
 
   const updated = await env.DB.prepare('SELECT * FROM trips WHERE id=?').bind(tripId).first();
+
+  if(key==='unloading_end'){
+    await emitPushEvent(env, 'unloadingEnd', updated, {
+      title:'📦 Unloading Completed',
+      body:`${updated.vehicle_number} unloading completed at ${updated.dest_name}.`,
+      targetView:'deck',
+      tag:`unloadingEnd|${updated.id}|${updated.unloading_end||Date.now()}`
+    });
+  }
+  if(key===EXIT_GATE_STEP){
+    await emitPushEvent(env, 'exitGate', updated, {
+      title:'✅ Vehicle Released',
+      body:`${updated.vehicle_number} released from ${updated.dest_name} exit gate.`,
+      targetView:'deck',
+      tag:`exitGate|${updated.id}|${updated.completed_at||Date.now()}`
+    });
+  }
+
   const segment = DELAY_CHECK_STEP[key];
   let delayNeeded = null;
   if(segment){
@@ -472,5 +522,104 @@ async function handleTripDelay(tripId, request, env, user){
   await env.DB.prepare('DELETE FROM trip_delays WHERE trip_id=? AND segment=?').bind(tripId, segment).run();
   await env.DB.prepare('INSERT INTO trip_delays (id,trip_id,segment,reason_id,reason_label,remarks,captured_at) VALUES (?,?,?,?,?,?,?)')
     .bind(uid(), tripId, segment, reasonId, reason?reason.label:'', (remarks||'').trim(), Date.now()).run();
+
+  const trip = await env.DB.prepare('SELECT * FROM trips WHERE id=?').bind(tripId).first();
+  if(trip){
+    await emitPushEvent(env, 'delay', trip, {
+      title:'⚠️ SnapTrack Delay Alert',
+      body:`${trip.vehicle_number} (${trip.source_name} → ${trip.dest_name}): ${segment} delay (${reason?reason.label:'Reason logged'}).`,
+      targetView:'alerts',
+      tag:`delay|${trip.id}|${segment}|${Date.now()}`
+    });
+  }
+
   return json({ ok:true });
+}
+
+async function handlePushPublicKey(env, user){
+  if(user.role==='driver') return json({ publicKey:'' });
+  return json({ publicKey: env.VAPID_PUBLIC_KEY || '' });
+}
+
+async function handlePushSubscribe(request, env, user){
+  if(user.role==='driver') return err('Drivers do not receive push alerts.', 403);
+  const b = await request.json();
+  const sub = b && b.subscription ? b.subscription : null;
+  if(!sub || !sub.endpoint || !sub.keys || !sub.keys.p256dh || !sub.keys.auth){
+    return err('Invalid push subscription payload.');
+  }
+
+  const existing = await env.DB.prepare('SELECT * FROM push_subscriptions WHERE endpoint=?').bind(sub.endpoint).first();
+  const now = Date.now();
+
+  if(existing){
+    await env.DB.prepare('UPDATE push_subscriptions SET user_id=?, p256dh=?, auth=?, ua=?, updated_at=? WHERE endpoint=?')
+      .bind(user.id, sub.keys.p256dh, sub.keys.auth, (b.ua||'').slice(0, 512), now, sub.endpoint)
+      .run();
+  }else{
+    await env.DB.prepare('INSERT INTO push_subscriptions (id,user_id,endpoint,p256dh,auth,ua,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)')
+      .bind(uid(), user.id, sub.endpoint, sub.keys.p256dh, sub.keys.auth, (b.ua||'').slice(0, 512), now, now)
+      .run();
+  }
+
+  return json({ ok:true });
+}
+
+async function handlePushUnsubscribe(request, env, user){
+  const b = await request.json();
+  const endpoint = b && b.endpoint ? b.endpoint : null;
+  if(!endpoint) return err('endpoint is required.');
+
+  await env.DB.prepare('DELETE FROM push_subscriptions WHERE endpoint=?').bind(endpoint).run();
+  return json({ ok:true });
+}
+
+function canUserReceiveEvent(user, eventType, trip){
+  if(!user || !user.active || user.role==='driver') return false;
+  if(eventType==='unloadingEnd'){
+    return user.role==='operator' ? user.location_id===trip.dest_id : (user.role==='manager' || user.role==='admin');
+  }
+  if(eventType==='exitGate'){
+    return user.role==='operator' ? user.location_id===trip.dest_id : (user.role==='manager' || user.role==='admin');
+  }
+  if(eventType==='delay'){
+    if(user.role==='operator') return user.location_id===trip.source_id || user.location_id===trip.dest_id;
+    return user.role==='manager' || user.role==='admin';
+  }
+  return false;
+}
+
+let pushConfigDone = false;
+function configureWebPush(env){
+  if(pushConfigDone) return !!(env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY && env.VAPID_SUBJECT);
+  pushConfigDone = true;
+  if(!(env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY && env.VAPID_SUBJECT)) return false;
+  try{
+    webpush.setVapidDetails(env.VAPID_SUBJECT, env.VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY);
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+
+async function emitPushEvent(env, eventType, tripRow, payload){
+  if(!configureWebPush(env)) return;
+  const rows = await env.DB.prepare('SELECT ps.*, u.role, u.location_id, u.active FROM push_subscriptions ps JOIN users u ON u.id = ps.user_id').all();
+  const subs = (rows.results || []).filter(r=>canUserReceiveEvent(r, eventType, tripRow));
+  if(!subs.length) return;
+
+  await Promise.all(subs.map(async (r)=>{
+    const subscription = {
+      endpoint: r.endpoint,
+      keys: { p256dh: r.p256dh, auth: r.auth }
+    };
+    try{
+      await webpush.sendNotification(subscription, JSON.stringify(payload));
+    }catch(e){
+      const statusCode = e && (e.statusCode || e.status);
+      if(statusCode===404 || statusCode===410){
+        await env.DB.prepare('DELETE FROM push_subscriptions WHERE endpoint=?').bind(r.endpoint).run();
+      }
+    }
+  }));
 }
